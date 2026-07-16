@@ -85,6 +85,51 @@ void AGoodbyeCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	UpdateGrabbedObject();
+
+	const bool bIsHoldingObject =
+		PhysicsHandle &&
+		PhysicsHandle->GetGrabbedComponent() != nullptr &&
+		GrabbedComponent != nullptr;
+
+	const float TargetAlpha = bIsHoldingObject ? 1.0f : 0.0f;
+
+	// Attiva e disattiva gradualmente l'IK,
+	// evitando uno scatto immediato del braccio.
+	RightHandIKAlpha = FMath::FInterpTo(
+		RightHandIKAlpha,
+		TargetAlpha,
+		DeltaTime,
+		HandIKInterpolationSpeed
+	);
+
+	if (!bIsHoldingObject || !FirstPersonCameraComponent)
+	{
+		return;
+	}
+
+	// Ricostruisce la posizione mondiale del punto afferrato.
+	RightHandIKTarget =
+		GrabbedComponent->GetComponentTransform()
+		.TransformPosition(LocalGrabPoint);
+
+	const FVector CameraLocation =
+		FirstPersonCameraComponent->GetComponentLocation();
+
+	const FVector CameraForward =
+		FirstPersonCameraComponent->GetForwardVector();
+
+	const FVector CameraRight =
+		FirstPersonCameraComponent->GetRightVector();
+
+	const FVector CameraUp =
+		FirstPersonCameraComponent->GetUpVector();
+
+	// Punto verso il quale deve orientarsi il gomito destro.
+	RightElbowIKTarget =
+		CameraLocation
+		+ CameraForward * 35.0f
+		+ CameraRight * 45.0f
+		- CameraUp * 20.0f;
 }
 
 void AGoodbyeCharacter::SetupPlayerInputComponent(
@@ -249,6 +294,15 @@ void AGoodbyeCharacter::StartGrab(
 	}
 
 	GrabbedComponent = HitComponent;
+
+	// Salva il punto colpito relativamente all'oggetto.
+	// In questo modo la mano continuerà a seguire lo stesso punto
+	// anche quando l'oggetto cambia posizione o ruota.
+	LocalGrabPoint =
+		GrabbedComponent->GetComponentTransform()
+		.InverseTransformPosition(HitResult.ImpactPoint);
+
+	RightHandIKTarget = HitResult.ImpactPoint;
 
 	// Salviamo la risposta originale verso il Pawn,
 	// così potremo ripristinarla quando lasciamo l'oggetto.

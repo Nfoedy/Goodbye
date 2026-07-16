@@ -77,7 +77,7 @@ protected:
 		Category = "Grab",
 		meta = (ClampMin = "50.0", Units = "cm")
 	)
-	float GrabDistance = 180.0f;
+	float GrabDistance = 100.0f;
 
 	/** Distance at which the grabbed object is held in front of the camera. */
 	UPROPERTY(
@@ -86,7 +86,7 @@ protected:
 		Category = "Grab",
 		meta = (ClampMin = "50.0", Units = "cm")
 	)
-	float HoldDistance = 110.0f;
+	float HoldDistance = 75.0f;
 
 	/** Physical component currently held by the Physics Handle. */
 	UPROPERTY(Transient)
@@ -118,6 +118,30 @@ protected:
 
 	/** Moves the grabbed object toward the holding point. */
 	void UpdateGrabbedObject();
+
+	/** Punto del componente afferrato espresso nello spazio locale dell'oggetto. */
+	FVector LocalGrabPoint = FVector::ZeroVector;
+
+	/** Posizione mondiale che la mano destra deve raggiungere. */
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	FVector RightHandIKTarget = FVector::ZeroVector;
+
+	/** Posizione mondiale usata per controllare la direzione del gomito. */
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	FVector RightElbowIKTarget = FVector::ZeroVector;
+
+	/** Intensità dell'IK: 0 disattivato, 1 completamente applicato. */
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	float RightHandIKAlpha = 0.0f;
+
+	/** Velocità con cui il braccio entra ed esce dalla posa di presa. */
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Category = "Grab|Animation",
+		meta = (ClampMin = "0.1")
+	)
+	float HandIKInterpolationSpeed = 10.0f;
 
 	/** Handles aim inputs from either controls or UI interfaces. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
