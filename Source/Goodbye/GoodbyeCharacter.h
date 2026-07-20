@@ -92,6 +92,48 @@ protected:
 	UPROPERTY(Transient)
 	UPrimitiveComponent* GrabbedComponent = nullptr;
 
+	/** Componente individuato dal Line Trace, ma non ancora afferrato. */
+	UPROPERTY(Transient)
+	UPrimitiveComponent* PendingGrabComponent = nullptr;
+
+	/** Punto colpito espresso nello spazio locale dell'oggetto in attesa. */
+	FVector PendingLocalGrabPoint = FVector::ZeroVector;
+
+	/** Nome del socket posizionato nel palmo destro. */
+	UPROPERTY(
+		EditDefaultsOnly,
+		BlueprintReadOnly,
+		Category = "Grab|Animation"
+	)
+	FName GrabSocketName = TEXT("GrabSocket");
+
+	/** Distanza massima tra il palmo e l'oggetto per completare la presa. */
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Category = "Grab|Animation",
+		meta = (ClampMin = "1.0", Units = "cm")
+	)
+	float GrabContactDistance = 8.0f;
+
+	/** Tempo massimo concesso al braccio per raggiungere l'oggetto. */
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Category = "Grab|Animation",
+		meta = (ClampMin = "0.1", Units = "s")
+	)
+	float MaxReachDuration = 1.0f;
+
+	/** Indica che il braccio sta raggiungendo un oggetto. */
+	bool bIsReachingToGrab = false;
+
+	/** Indica che il pulsante del grab è ancora premuto. */
+	bool bGrabInputHeld = false;
+
+	/** Tempo trascorso dall'inizio del movimento del braccio. */
+	float ReachElapsedTime = 0.0f;
+
 	/** Original collision response of the object toward the Pawn channel. */
 	ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
@@ -118,6 +160,12 @@ protected:
 
 	/** Moves the grabbed object toward the holding point. */
 	void UpdateGrabbedObject();
+
+	/** Afferra fisicamente l'oggetto quando il palmo lo raggiunge. */
+	void CompleteGrab();
+
+	/** Annulla un tentativo di presa non ancora completato. */
+	void CancelPendingGrab();
 
 	/** Punto del componente afferrato espresso nello spazio locale dell'oggetto. */
 	FVector LocalGrabPoint = FVector::ZeroVector;

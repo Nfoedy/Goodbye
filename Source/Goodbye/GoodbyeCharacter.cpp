@@ -84,33 +84,10 @@ void AGoodbyeCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateGrabbedObject();
-
-	const bool bIsHoldingObject =
-		PhysicsHandle &&
-		PhysicsHandle->GetGrabbedComponent() != nullptr &&
-		GrabbedComponent != nullptr;
-
-	const float TargetAlpha = bIsHoldingObject ? 1.0f : 0.0f;
-
-	// Attiva e disattiva gradualmente l'IK,
-	// evitando uno scatto immediato del braccio.
-	RightHandIKAlpha = FMath::FInterpTo(
-		RightHandIKAlpha,
-		TargetAlpha,
-		DeltaTime,
-		HandIKInterpolationSpeed
-	);
-
-	if (!bIsHoldingObject || !FirstPersonCameraComponent)
+	if (!FirstPersonCameraComponent)
 	{
 		return;
 	}
-
-	// Ricostruisce la posizione mondiale del punto afferrato.
-	RightHandIKTarget =
-		GrabbedComponent->GetComponentTransform()
-		.TransformPosition(LocalGrabPoint);
 
 	const FVector CameraLocation =
 		FirstPersonCameraComponent->GetComponentLocation();
@@ -124,7 +101,122 @@ void AGoodbyeCharacter::Tick(float DeltaTime)
 	const FVector CameraUp =
 		FirstPersonCameraComponent->GetUpVector();
 
-	// Punto verso il quale deve orientarsi il gomito destro.
+	/*
+	 * FASE 1:
+	 * Il braccio sta raggiungendo l'oggetto,
+	 * che rimane ancora fermo.
+	 */
+	if (bIsReachingToGrab)
+	{
+		if (!bGrabInputHeld ||
+			!IsValid(PendingGrabComponent))
+		{
+			CancelPendingGrab();
+			return;
+		}
+
+		// Il punto può cambiare posizione se l'oggetto
+		// viene urtato mentre la mano lo sta raggiungendo.
+		const FVector PendingGrabWorldPoint =
+			PendingGrabComponent
+			->GetComponentTransform()
+			.TransformPosition(PendingLocalGrabPoint);
+
+		RightHandIKTarget = PendingGrabWorldPoint;
+
+		RightElbowIKTarget =
+			CameraLocation
+			+ CameraForward * 35.0f
+			+ CameraRight * 45.0f
+			- CameraUp * 20.0f;
+
+		RightHandIKAlpha = FMath::FInterpTo(
+			RightHandIKAlpha,
+			1.0f,
+			DeltaTime,
+			HandIKInterpolationSpeed
+		);
+
+		ReachElapsedTime += DeltaTime;
+
+		// Usiamo il socket della mesh visibile in prima persona,
+		// perché rappresenta il palmo visto dal giocatore.
+		if (!FirstPersonMesh ||
+			!FirstPersonMesh->DoesSocketExist(GrabSocketName))
+		{
+			UE_LOG(
+				LogGoodbye,
+				Warning,
+				TEXT(
+					"GrabSocket '%s' non trovato sulla FirstPersonMesh."
+				),
+				*GrabSocketName.ToString()
+			);
+
+			CancelPendingGrab();
+			return;
+		}
+
+		const FVector HandSocketLocation =
+			FirstPersonMesh->GetSocketLocation(GrabSocketName);
+
+		const float HandToObjectDistance =
+			FVector::Distance(
+				HandSocketLocation,
+				PendingGrabWorldPoint
+			);
+
+		// La presa fisica avviene solo quando il palmo
+		// è abbastanza vicino al punto dell'oggetto.
+		if (HandToObjectDistance <= GrabContactDistance)
+		{
+			CompleteGrab();
+			return;
+		}
+
+		// Evita che il personaggio rimanga bloccato
+		// in una presa impossibile.
+		if (ReachElapsedTime >= MaxReachDuration)
+		{
+			CancelPendingGrab();
+		}
+
+		return;
+	}
+
+	/*
+	 * FASE 2:
+	 * L'oggetto è stato afferrato e segue la telecamera.
+	 */
+	UpdateGrabbedObject();
+
+	const bool bIsHoldingObject =
+		PhysicsHandle &&
+		PhysicsHandle->GetGrabbedComponent() &&
+		GrabbedComponent;
+
+	const float TargetAlpha =
+		bIsHoldingObject ? 1.0f : 0.0f;
+
+	RightHandIKAlpha = FMath::FInterpTo(
+		RightHandIKAlpha,
+		TargetAlpha,
+		DeltaTime,
+		HandIKInterpolationSpeed
+	);
+
+	if (!bIsHoldingObject)
+	{
+		return;
+	}
+
+	// La mano continua a seguire lo stesso punto
+	// dell'oggetto durante il trasporto.
+	RightHandIKTarget =
+		GrabbedComponent
+		->GetComponentTransform()
+		.TransformPosition(LocalGrabPoint);
+
 	RightElbowIKTarget =
 		CameraLocation
 		+ CameraForward * 35.0f
@@ -240,25 +332,24 @@ void AGoodbyeCharacter::StartGrab(
 	const FInputActionValue& Value
 )
 {
-	// Non possiamo prendere un secondo oggetto
-	// mentre ne stiamo già trasportando uno.
+	bGrabInputHeld = true;
+
+	// Non iniziare una nuova presa se ne esiste già una.
 	if (!PhysicsHandle ||
-		PhysicsHandle->GetGrabbedComponent() != nullptr ||
+		PhysicsHandle->GetGrabbedComponent() ||
+		bIsReachingToGrab ||
 		!FirstPersonCameraComponent ||
 		!GetWorld())
 	{
 		return;
 	}
 
-	// Il Line Trace parte dalla telecamera.
 	const FVector TraceStart =
 		FirstPersonCameraComponent->GetComponentLocation();
 
-	const FVector TraceDirection =
-		FirstPersonCameraComponent->GetForwardVector();
-
 	const FVector TraceEnd =
-		TraceStart + TraceDirection * GrabDistance;
+		TraceStart +
+		FirstPersonCameraComponent->GetForwardVector() * GrabDistance;
 
 	FHitResult HitResult;
 
@@ -284,8 +375,6 @@ void AGoodbyeCharacter::StartGrab(
 	UPrimitiveComponent* HitComponent =
 		HitResult.GetComponent();
 
-	// Possiamo prendere solamente oggetti derivati
-	// da AMovableItem che simulano la fisica.
 	if (!MovableItem ||
 		!HitComponent ||
 		!HitComponent->IsSimulatingPhysics())
@@ -293,46 +382,36 @@ void AGoodbyeCharacter::StartGrab(
 		return;
 	}
 
-	GrabbedComponent = HitComponent;
+	// Per ora salviamo soltanto l'oggetto:
+	// il Physics Handle non lo afferra ancora.
+	PendingGrabComponent = HitComponent;
 
-	// Salva il punto colpito relativamente all'oggetto.
-	// In questo modo la mano continuerà a seguire lo stesso punto
-	// anche quando l'oggetto cambia posizione o ruota.
-	LocalGrabPoint =
-		GrabbedComponent->GetComponentTransform()
+	PendingLocalGrabPoint =
+		PendingGrabComponent
+		->GetComponentTransform()
 		.InverseTransformPosition(HitResult.ImpactPoint);
 
+	// La mano deve raggiungere il punto preciso colpito dal trace.
 	RightHandIKTarget = HitResult.ImpactPoint;
 
-	// Salviamo la risposta originale verso il Pawn,
-	// così potremo ripristinarla quando lasciamo l'oggetto.
-	OriginalPawnCollisionResponse =
-		GrabbedComponent->GetCollisionResponseToChannel(
-			ECC_Pawn
-		);
-
-	// Evita che l'oggetto trasportato urti continuamente
-	// il corpo del giocatore.
-	GrabbedComponent->SetCollisionResponseToChannel(
-		ECC_Pawn,
-		ECR_Ignore
-	);
-
-	GrabbedComponent->WakeAllRigidBodies();
-
-	// L'oggetto viene afferrato nel punto preciso
-	// colpito dal Line Trace.
-	PhysicsHandle->GrabComponentAtLocation(
-		GrabbedComponent,
-		NAME_None,
-		HitResult.ImpactPoint
-	);
+	ReachElapsedTime = 0.0f;
+	bIsReachingToGrab = true;
 }
 
 void AGoodbyeCharacter::StopGrab(
 	const FInputActionValue& Value
 )
 {
+	bGrabInputHeld = false;
+
+	// Il mouse è stato rilasciato prima che la mano
+	// raggiungesse l'oggetto.
+	if (bIsReachingToGrab)
+	{
+		CancelPendingGrab();
+		return;
+	}
+
 	if (!PhysicsHandle)
 	{
 		return;
@@ -340,19 +419,16 @@ void AGoodbyeCharacter::StopGrab(
 
 	PhysicsHandle->ReleaseComponent();
 
-	if (!GrabbedComponent)
+	if (GrabbedComponent)
 	{
-		return;
+		GrabbedComponent->SetCollisionResponseToChannel(
+			ECC_Pawn,
+			OriginalPawnCollisionResponse
+		);
+
+		GrabbedComponent->WakeAllRigidBodies();
+		GrabbedComponent = nullptr;
 	}
-
-	// Ripristina le collisioni con il giocatore.
-	GrabbedComponent->SetCollisionResponseToChannel(
-		ECC_Pawn,
-		OriginalPawnCollisionResponse
-	);
-
-	GrabbedComponent->WakeAllRigidBodies();
-	GrabbedComponent = nullptr;
 }
 
 void AGoodbyeCharacter::UpdateGrabbedObject()
@@ -401,7 +477,67 @@ void AGoodbyeCharacter::DoJumpStart()
 	Jump();
 }
 
+
 void AGoodbyeCharacter::DoJumpEnd()
 {
 	StopJumping();
+}
+
+
+void AGoodbyeCharacter::CompleteGrab()
+{
+	if (!bGrabInputHeld ||
+		!PhysicsHandle ||
+		!PendingGrabComponent ||
+		!PendingGrabComponent->IsSimulatingPhysics())
+	{
+		CancelPendingGrab();
+		return;
+	}
+
+	// Ricostruisce il punto mondiale anche nel caso
+	// in cui l'oggetto si sia mosso durante l'animazione.
+	const FVector GrabWorldPoint =
+		PendingGrabComponent
+		->GetComponentTransform()
+		.TransformPosition(PendingLocalGrabPoint);
+
+	GrabbedComponent = PendingGrabComponent;
+	LocalGrabPoint = PendingLocalGrabPoint;
+
+	OriginalPawnCollisionResponse =
+		GrabbedComponent->GetCollisionResponseToChannel(
+			ECC_Pawn
+		);
+
+	// Evita che il cubo urti continuamente la capsula
+	// mentre viene trasportato.
+	GrabbedComponent->SetCollisionResponseToChannel(
+		ECC_Pawn,
+		ECR_Ignore
+	);
+
+	GrabbedComponent->WakeAllRigidBodies();
+
+	// Soltanto adesso viene eseguita la presa fisica.
+	PhysicsHandle->GrabComponentAtLocation(
+		GrabbedComponent,
+		NAME_None,
+		GrabWorldPoint
+	);
+
+	PendingGrabComponent = nullptr;
+	PendingLocalGrabPoint = FVector::ZeroVector;
+	bIsReachingToGrab = false;
+	ReachElapsedTime = 0.0f;
+}
+
+
+void AGoodbyeCharacter::CancelPendingGrab()
+{
+	PendingGrabComponent = nullptr;
+	PendingLocalGrabPoint = FVector::ZeroVector;
+
+	bIsReachingToGrab = false;
+	ReachElapsedTime = 0.0f;
 }
