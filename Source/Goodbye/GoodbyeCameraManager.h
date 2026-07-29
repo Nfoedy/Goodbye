@@ -1,15 +1,14 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GoodbyeCameraManager.generated.h"
 
-/**
- *  Basic First Person camera manager.
- *  Limits min/max look pitch.
- */
+/*
+* Eredita da PlayerCameraManager
+* 
+*/
+
 UCLASS()
 class AGoodbyeCameraManager : public APlayerCameraManager
 {
@@ -17,6 +16,6 @@ class AGoodbyeCameraManager : public APlayerCameraManager
 	
 public:
 
-	/** Constructor */
+	// Costruttore
 	AGoodbyeCameraManager();
 };

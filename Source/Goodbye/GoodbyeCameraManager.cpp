@@ -1,11 +1,10 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
-
 #include "GoodbyeCameraManager.h"
 
+// Costruttore
 AGoodbyeCameraManager::AGoodbyeCameraManager()
 {
-	// set the min/max pitch
+	// Evita che il giocatore ruoti la testa verticalmente
+	// -70° <= Pitch <= 80°
 	ViewPitchMin = -70.0f;
 	ViewPitchMax = 80.0f;
 }

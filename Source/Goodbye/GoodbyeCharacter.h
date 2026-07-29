@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -19,210 +17,213 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 /**
- * A basic first person character
+ * Character prima persona, eredita da Character
+ * 
+ * Definisce tutto ciò che il Goodbye Character possiede e tutte le azioni che può eseguire.
  */
+
 UCLASS(abstract)
 class AGoodbyeCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Pawn mesh: first person view, seen only by the owning player. */
-	UPROPERTY(
-		VisibleAnywhere,
-		BlueprintReadOnly,
-		Category = "Components",
-		meta = (AllowPrivateAccess = "true")
-	)
-	USkeletalMeshComponent* FirstPersonMesh;
 
-	/** First person camera. */
-	UPROPERTY(
-		VisibleAnywhere,
-		BlueprintReadOnly,
-		Category = "Components",
-		meta = (AllowPrivateAccess = "true")
-	)
-	UCameraComponent* FirstPersonCameraComponent;
-
-protected:
-
-	/** Jump Input Action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* JumpAction;
-
-	/** Move Input Action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* MoveAction;
-
-	/** Look Input Action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* LookAction;
-
-	/** Mouse Look Input Action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* MouseLookAction;
-
-	/** Left mouse input used to grab and release physical objects. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* GrabAction;
-
-	/** Component used to grab and move objects that simulate physics. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grab")
-	UPhysicsHandleComponent* PhysicsHandle;
-
-	/** Maximum distance at which an object can be grabbed. */
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadOnly,
-		Category = "Grab",
-		meta = (ClampMin = "50.0", Units = "cm")
-	)
-	float GrabDistance = 100.0f;
-
-	/** Distance at which the grabbed object is held in front of the camera. */
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadOnly,
-		Category = "Grab",
-		meta = (ClampMin = "50.0", Units = "cm")
-	)
-	float HoldDistance = 75.0f;
-
-	/** Physical component currently held by the Physics Handle. */
-	UPROPERTY(Transient)
-	UPrimitiveComponent* GrabbedComponent = nullptr;
-
-	/** Componente individuato dal Line Trace, ma non ancora afferrato. */
-	UPROPERTY(Transient)
-	UPrimitiveComponent* PendingGrabComponent = nullptr;
-
-	/** Punto colpito espresso nello spazio locale dell'oggetto in attesa. */
-	FVector PendingLocalGrabPoint = FVector::ZeroVector;
-
-	/** Nome del socket posizionato nel palmo destro. */
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Grab|Animation"
-	)
-	FName GrabSocketName = TEXT("GrabSocket");
-
-	/** Distanza massima tra il palmo e l'oggetto per completare la presa. */
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadOnly,
-		Category = "Grab|Animation",
-		meta = (ClampMin = "1.0", Units = "cm")
-	)
-	float GrabContactDistance = 8.0f;
-
-	/** Tempo massimo concesso al braccio per raggiungere l'oggetto. */
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadOnly,
-		Category = "Grab|Animation",
-		meta = (ClampMin = "0.1", Units = "s")
-	)
-	float MaxReachDuration = 1.0f;
-
-	/** Indica che il braccio sta raggiungendo un oggetto. */
-	bool bIsReachingToGrab = false;
-
-	/** Indica che il pulsante del grab è ancora premuto. */
-	bool bGrabInputHeld = false;
-
-	/** Tempo trascorso dall'inizio del movimento del braccio. */
-	float ReachElapsedTime = 0.0f;
-
-	/** Original collision response of the object toward the Pawn channel. */
-	ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
-
+/* PUBLIC */
 public:
 
+	// Costruttore 
 	AGoodbyeCharacter();
 
-	/** Updates the position of the held object every frame. */
+	// Aggiornamento ad ogni Tick
 	virtual void Tick(float DeltaTime) override;
 
-protected:
-
-	/** Called from Input Actions for movement input. */
-	void MoveInput(const FInputActionValue& Value);
-
-	/** Called from Input Actions for looking input. */
-	void LookInput(const FInputActionValue& Value);
-
-	/** Starts grabbing the physical object in front of the camera. */
-	void StartGrab(const FInputActionValue& Value);
-
-	/** Releases the currently grabbed object. */
-	void StopGrab(const FInputActionValue& Value);
-
-	/** Moves the grabbed object toward the holding point. */
-	void UpdateGrabbedObject();
-
-	/** Afferra fisicamente l'oggetto quando il palmo lo raggiunge. */
-	void CompleteGrab();
-
-	/** Annulla un tentativo di presa non ancora completato. */
-	void CancelPendingGrab();
-
-	/** Punto del componente afferrato espresso nello spazio locale dell'oggetto. */
-	FVector LocalGrabPoint = FVector::ZeroVector;
-
-	/** Posizione mondiale che la mano destra deve raggiungere. */
-	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
-	FVector RightHandIKTarget = FVector::ZeroVector;
-
-	/** Posizione mondiale usata per controllare la direzione del gomito. */
-	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
-	FVector RightElbowIKTarget = FVector::ZeroVector;
-
-	/** Intensità dell'IK: 0 disattivato, 1 completamente applicato. */
-	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
-	float RightHandIKAlpha = 0.0f;
-
-	/** Velocità con cui il braccio entra ed esce dalla posa di presa. */
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadOnly,
-		Category = "Grab|Animation",
-		meta = (ClampMin = "0.1")
-	)
-	float HandIKInterpolationSpeed = 10.0f;
-
-	/** Handles aim inputs from either controls or UI interfaces. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void DoAim(float Yaw, float Pitch);
-
-	/** Handles move inputs from either controls or UI interfaces. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void DoMove(float Right, float Forward);
-
-	/** Handles jump start inputs from either controls or UI interfaces. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void DoJumpStart();
-
-	/** Handles jump end inputs from either controls or UI interfaces. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void DoJumpEnd();
-
-	/** Sets up input action bindings. */
-	virtual void SetupPlayerInputComponent(
-		UInputComponent* InputComponent
-	) override;
-
-public:
-
-	/** Returns the first person mesh. */
+	// Restituisce il puntatore della Skeletal Mesh usata in prima persona
 	USkeletalMeshComponent* GetFirstPersonMesh() const
 	{
 		return FirstPersonMesh;
 	}
 
-	/** Returns the first person camera component. */
+	// Restituisce il puntatore della Camera del Character
 	UCameraComponent* GetFirstPersonCameraComponent() const
 	{
 		return FirstPersonCameraComponent;
 	}
+
+
+/* COMPONENTI */
+private:
+
+	// Mesh del personaggio visibile solamente al giocatore proprietario
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* FirstPersonMesh = nullptr;
+
+	// Telecamera principale utilizzata dal giocatore
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FirstPersonCameraComponent = nullptr;
+
+
+	// Componente che permette di afferrare e trascinare oggetti 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grab", meta = (AllowPrivateAccess = "true"))
+	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+
+
+
+/* INPUT ACTION */
+protected:
+
+	// Jump Input Action
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* JumpAction;
+
+	// Move Input Action
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* MoveAction;
+
+	// Look Input Action
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* LookAction;
+
+	// Mouse Look Input Action
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* MouseLookAction;
+
+	// Grab Action
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* GrabAction;
+
+
+/* CONFIGURAZIONE DEL GRAB*/
+
+
+	// Massima distanza che un oggetto può essere grabbato
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
+	float GrabDistance = 100.0f;
+
+	// Distanza alla quale l'oggetto viene mantenuto davanti alla telecamera dopo essere stato afferrato
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
+	float HoldDistance = 75.0f;
+
+
+	// Tempo durante il quale il braccio si muove verso l'oggetto prima che il Physic Handle completi la presa
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Animation", meta = (ClampMin = "0.05", Units = "s"))
+	float ReachDuration = 0.20f;
+
+
+/* CONFIGURAZIONE DELL'IK */
+
+
+	// Posizione mondiale che la mano destra deve raggiungere
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	FVector RightHandIKTarget = FVector::ZeroVector;
+
+	// Posizione mondiale usata per controllare la direzione del gomito
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	FVector RightElbowIKTarget = FVector::ZeroVector;
+
+	// Intensità con cui viene applicato il TwoBone IK
+	// 0 = disattivato , 1 = applicato completamente
+	UPROPERTY(BlueprintReadOnly, Category = "Grab|Animation")
+	float RightHandIKAlpha = 0.0f;
+
+	// Velocità con cui RightHandIKAlpha raggiunge il valore desiderato
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Animation", meta = (ClampMin = "0.1"))
+	float HandIKInterpolationSpeed = 10.0f;
+
+
+/* STATO INTERNO DEL GRAB */
+private:
+
+	// Componente fisico attualmente afferrato dal Physics Handle
+	UPROPERTY(Transient)
+	UPrimitiveComponent* GrabbedComponent = nullptr;
+
+	//Componente individuato dal Line Trace, ma non ancora afferrato fisicamente 
+	UPROPERTY(Transient)
+	UPrimitiveComponent* PendingGrabComponent = nullptr;
+
+	// Punto colpito espresso nello spazio locale dell'oggeto in attesa
+	FVector PendingLocalGrabPoint = FVector::ZeroVector;
+
+
+	// Punto del componente afferrato espresso nello spazio locale dell'oggetto
+	FVector LocalGrabPoint = FVector::ZeroVector;
+
+
+	// Indica se il braccio sta tentando di raggiungere un oggetto non ancora afferrato
+	bool bIsReachingToGrab = false;
+
+	// Indica che il pulsante del grab è ancora premuto
+	bool bGrabInputHeld = false;
+
+	// Tempo trascorso dall'inizio del movimento del braccio
+	float ReachElapsedTime = 0.0f;
+
+	// Risposta originale dell'oggetto al canale Pawn
+	// Viene salvata prima del grab e ripristinata quando l'oggetto viene rilasciato
+	ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
+
+
+
+/* CONFIGURAZIONE DEGLI INPUT */
+
+	// Collega le Input Action alle funzioni del Cahracter
+	// Unreal richiama automaticamente questa funzione quando il Character viene posseduto da un Controller
+	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+
+
+
+
+/* CALLBACK DELL' ENHANCED INPUT*/
+private:
+
+	// Riceve il valore dell'InputAction di movimento
+	void MoveInput(const FInputActionValue& Value);
+
+	// Riceve il valore dell'Input Action della visuale
+	void LookInput(const FInputActionValue& Value);
+
+	// Avvia un tentativo di Grab
+	void StartGrab(const FInputActionValue& Value);
+
+	// Termina il grab quando il giocatore rilascia il comando
+	void StopGrab(const FInputActionValue& Value);
+
+
+
+/* FUNZIONI INTERNE DEL SISTEMA DI GRAB */
+private:
+
+	// Aggiorna la posizione target del Physics Handle
+	void UpdateGrabbedObject();
+
+	// Completa la presa fisica dell'oggetto 
+	void CompleteGrab();
+
+	// Annulla un tentativo di presa non ancora completato
+	void CancelPendingGrab();
+
+
+
+/* AZIONI DI MOVIMENTO UTILIZZABILI ANCHE DAI BP */
+protected:
+
+	// Applica una rotazione alla visuale
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void DoAim(float Yaw, float Pitch);
+
+	// Muove il Character nelle direzioni indicate 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void DoMove(float Right, float Forward);
+
+	// Avvia il salto del Character
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void DoJumpStart();
+
+	// Termina il salto del Character
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void DoJumpEnd();
+
+
+
+
 };
