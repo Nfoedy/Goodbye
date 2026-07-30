@@ -97,7 +97,7 @@ protected:
 
 	// Massima distanza che un oggetto può essere grabbato
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
-	float GrabDistance = 150.0f;
+	float GrabDistance = 200.0f;
 
 	// Distanza alla quale l'oggetto viene mantenuto davanti alla telecamera dopo essere stato afferrato
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
@@ -107,6 +107,22 @@ protected:
 	// Tempo durante il quale il braccio si muove verso l'oggetto prima che il Physic Handle completi la presa
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Animation", meta = (ClampMin = "0.05", Units = "s"))
 	float ReachDuration = 0.20f;
+
+
+	// Massa massima che il Character può sollevare
+	// Gli oggetti oltre questo valore possono essere spinti fisicamente, ma non afferrati
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Weight", meta = (ClampMin = "1.0",	Units = "kg"))
+	float MaxGrabbableMass = 750.0f;
+
+
+	// Velocità del Physics Handle con oggetti leggeri
+	UPROPERTY(EditAnywhere,	BlueprintReadOnly,	Category = "Grab|Weight", meta = (ClampMin = "0.1"))
+	float LightObjectInterpolationSpeed = 12.0f;
+
+
+	// Velocità minima del Physic Handle quando viene trasportato un oggetto pesante
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Weight", meta = (ClampMin = "0.1"))
+	float HeavyObjectInterpolationSpeed = 3.0f;
 
 
 /* CONFIGURAZIONE DELL'IK */
@@ -163,6 +179,10 @@ private:
 	ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
 
+	// Massa dell'oggetto attualemten trasportato
+	float GrabbedMassInKg = 0.0f;
+
+
 
 /* CONFIGURAZIONE DEGLI INPUT */
 protected:
@@ -188,6 +208,12 @@ private:
 
 	// Termina il grab quando il giocatore rilascia il comando
 	void StopGrab(const FInputActionValue& Value);
+
+	// Configura il Physics Handle in base alla massa dell'oggetto afferrato
+	void ApplyGrabWeight(float ObjectMassInKg);
+
+	// Ripristina i valori normali del Physics Handle
+	void ResetGrabWeight();
 
 
 
