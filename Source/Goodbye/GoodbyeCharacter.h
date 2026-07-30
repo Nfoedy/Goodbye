@@ -97,7 +97,7 @@ protected:
 
 	// Massima distanza che un oggetto può essere grabbato
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
-	float GrabDistance = 100.0f;
+	float GrabDistance = 150.0f;
 
 	// Distanza alla quale l'oggetto viene mantenuto davanti alla telecamera dopo essere stato afferrato
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
@@ -165,6 +165,7 @@ private:
 
 
 /* CONFIGURAZIONE DEGLI INPUT */
+protected:
 
 	// Collega le Input Action alle funzioni del Cahracter
 	// Unreal richiama automaticamente questa funzione quando il Character viene posseduto da un Controller
