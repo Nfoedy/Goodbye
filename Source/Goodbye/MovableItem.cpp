@@ -1,6 +1,9 @@
 #include "MovableItem.h"
 #include "Engine/World.h"
 #include "Components/StaticMeshComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/ProgressBar.h"
+#include "Components/WidgetComponent.h"
 
 
 // Costruttore 
@@ -33,8 +36,55 @@ AMovableItem::AMovableItem()
 	
 	// Collega l'evento di collisione della mesh alla funzione HandleItemHit()
 	ItemMesh->OnComponentHit.AddDynamic(this, &AMovableItem::HandleItemHit);
+
+
+	// Crea il componente che visualizza la barra della vita
+	HealthWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthWidget"));
+
+	// Collega la barra all'oggetto
+	HealthWidgetComponent->SetupAttachment(ItemMesh);
+
+	// Posiziona la barra sopra l'oggetto
+	HealthWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f));
+
+	// La barra rimane orientata correttamente sullo schermo
+	HealthWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+
+	// Dimensione della barra
+	HealthWidgetComponent->SetDrawSize(FVector2D(160.0f, 20.0f));
+
+	// La barra non deve avere collisioni
+	HealthWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Parte nascosta
+	HealthWidgetComponent->SetVisibility(false);
 }
 
+
+void AMovableItem::BeginPlay()
+{
+	Super::BeginPlay();
+
+	CurrentHealth = MaxHealth;
+	bIsBroken = false;
+
+	if (IsValid(HealthWidgetComponent))
+	{
+		HealthWidgetComponent->InitWidget();
+
+		UpdateHealthWidget();
+
+		HealthWidgetComponent->SetVisibility(false);
+	}
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("%s inizializzato con %.1f HP"),
+		*GetName(),
+		CurrentHealth
+	);
+}
 
 // Massa
 float AMovableItem::GetItemMassInKg() const
@@ -82,21 +132,69 @@ void AMovableItem::HandleItemHit(UPrimitiveComponent* HitComponent, AActor* Othe
 
 	LastImpactTime = CurrentTime;
 
+	// Calcola il danno solamente sulla parte dell'impatto che supera la soglia minima
+	const float RawDamage = (ImpactSeverity - MinimumImpactSeverity) * ImpactDamageMultiplier;
+
+	// Protegge il Clamp nel caso in cui i valori vengano configurati male nel Blueprint
+	const float SafeMaximumDamage =	FMath::Max(	MaximumDamagePerImpact, MinimumDamagePerImpact);
+
+	// Limita il danno tra il minimo e il massimo configurati.
+	const float Damage = FMath::Clamp(RawDamage, MinimumDamagePerImpact, SafeMaximumDamage);
+
+	// Applica il danno alla salute dell'oggetto.
+	ApplyImpactDamage(Damage);
+
 	UE_LOG(
 		LogTemp,
 		Display,
 		TEXT(
 			"%s ha colpito %s | "
 			"Massa: %.1f kg | "
-			"Impulso: %.2f | "
-			"Severita impatto: %.2f cm/s"
+			"Severita: %.2f cm/s | "
+			"Danno: %.2f"
 		),
 		*GetName(),
 		*GetNameSafe(OtherActor),
 		ObjectMassInKg,
-		NormalImpulse.Size(),
-		ImpactSeverity
+		ImpactSeverity,
+		Damage
 	);
+}
+
+// ApplyDamage
+void AMovableItem::ApplyImpactDamage(float DamageAmount)
+{
+	if (bIsBroken || DamageAmount <= 0.0f)
+	{
+		return;
+	}
+
+	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
+
+	UpdateHealthWidget();
+
+	if (IsValid(HealthWidgetComponent))
+	{
+		HealthWidgetComponent->SetVisibility(CurrentHealth < MaxHealth && CurrentHealth > 0.0f);
+	}
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT(
+			"%s | Danno ricevuto: %.2f | "
+			"Salute: %.2f / %.2f"
+		),
+		*GetName(),
+		DamageAmount,
+		CurrentHealth,
+		MaxHealth
+	);
+
+	if (CurrentHealth <= 0.0f)
+	{
+		DestroyItem();
+	}
 }
 
 
@@ -122,4 +220,75 @@ int32 AMovableItem::GetItemScore() const
 	default:
 		return 1;
 	}
+}
+
+
+// Destroy Item
+void AMovableItem::DestroyItem()
+{
+	if (bIsBroken)
+	{
+		return;
+	}
+
+	bIsBroken = true;
+	CurrentHealth = 0.0f;
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("%s distrutto"),
+		*GetName()
+	);
+
+	if (IsValid(ItemMesh))
+	{
+		// Impedisce nuovi eventi di impatto mentre l'Actor attende di essere rimosso
+		ItemMesh->SetNotifyRigidBodyCollision(false);
+
+		ItemMesh->SetSimulatePhysics(false);
+
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	Destroy();
+}
+
+
+
+void AMovableItem::UpdateHealthWidget()
+{
+	if (!IsValid(HealthWidgetComponent))
+	{
+		return;
+	}
+
+	// Recupera il Widget Blueprint visualizzato dal Widget Component
+	UUserWidget* HealthWidget = HealthWidgetComponent->GetUserWidgetObject();
+
+	if (!IsValid(HealthWidget))
+	{
+		return;
+	}
+
+	// Cerca nel WBP la Progress Bar chiamata esattamente "HealthProgressBar"
+	UProgressBar* HealthProgressBar =Cast<UProgressBar>(HealthWidget->GetWidgetFromName(TEXT("HealthProgressBar"))
+		);
+
+	if (!IsValid(HealthProgressBar))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT(
+				"%s: HealthProgressBar non trovata nel Widget"
+			),
+			*GetName()
+		);
+
+		return;
+	}
+
+	// Aggiorna la barra con un valore tra 0 e 1
+	HealthProgressBar->SetPercent(GetHealthPercent());
 }
