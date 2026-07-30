@@ -33,6 +33,9 @@ AMovableItem::AMovableItem()
 	// Abilita la generazione degli eventi OnComponentHit
 	ItemMesh->SetNotifyRigidBodyCollision(true);
 
+	// Permette alla mesh di generare eventi quando entra o esce da una Cargo Zone
+	ItemMesh->SetGenerateOverlapEvents(true);
+
 	
 	// Collega l'evento di collisione della mesh alla funzione HandleItemHit()
 	ItemMesh->OnComponentHit.AddDynamic(this, &AMovableItem::HandleItemHit);
