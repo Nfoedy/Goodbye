@@ -214,4 +214,7 @@ void ACargoZone::RecalculateScore()
 
 		CurrentScore += MovableItem->GetItemScore();
 	}
+
+	// Comunica ai Blueprint i nuovi valori
+	OnCargoChanged.Broadcast(LoadedItems.Num(),	CurrentScore);
 }

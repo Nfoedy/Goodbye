@@ -23,6 +23,10 @@ struct FHitResult;
  * - rimozione degli oggetti distrutti.
  */
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCargoChangedSignature, int32, LoadedItemCount, int32, CargoScore);
+
+
 UCLASS()
 class GOODBYE_API ACargoZone : public AActor
 {
@@ -50,6 +54,11 @@ public:
 	{
 		return LoadedItems.Num();
 	}
+
+
+	// Evento richiamato ogni volta che cambia il contenuto della Cargo Zone
+	UPROPERTY(BlueprintAssignable, Category = "Cargo Zone|Events")
+	FCargoChangedSignature OnCargoChanged;
 
 
 /* COMPONENTI */
