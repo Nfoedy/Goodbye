@@ -11,6 +11,7 @@ class UCameraComponent;
 class UInputAction;
 class UPhysicsHandleComponent;
 class UPrimitiveComponent;
+class ACargoTruckPawn;
 
 struct FInputActionValue;
 
@@ -49,6 +50,12 @@ public:
 		return FirstPersonCameraComponent;
 	}
 
+	// Registra il camion vicino al Character
+	void SetNearbyCargoTruck(ACargoTruckPawn* CargoTruck);
+
+	// Rimuove il camion quando il Character si allontana
+	void ClearNearbyCargoTruck(ACargoTruckPawn* CargoTruck);
+
 
 /* COMPONENTI */
 private:
@@ -65,6 +72,15 @@ private:
 	// Componente che permette di afferrare e trascinare oggetti 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grab", meta = (AllowPrivateAccess = "true"))
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+
+
+	// Camion attualmente vicino al Character
+	UPROPERTY(Transient)
+	TObjectPtr<ACargoTruckPawn> NearbyCargoTruck = nullptr;
+
+
+	// Gestisce la pressione del comando di interazione
+	void HandleInteract();
 
 
 
@@ -90,6 +106,11 @@ protected:
 	// Grab Action
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* GrabAction;
+
+
+	// Interact Action (per entrare nel Cargo)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> InteractAction;
 
 
 /* CONFIGURAZIONE DEL GRAB*/
@@ -249,8 +270,6 @@ protected:
 	// Termina il salto del Character
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void DoJumpEnd();
-
-
 
 
 };

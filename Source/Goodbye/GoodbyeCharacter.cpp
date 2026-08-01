@@ -11,6 +11,7 @@
 #include "MovableItem.h"
 #include "CollisionQueryParams.h"
 #include "Engine/World.h"
+#include "CargoTruckPawn.h"
 
 
 // Costruttore 
@@ -248,6 +249,16 @@ void AGoodbyeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 			this,
 			&AGoodbyeCharacter::StopGrab
 		);
+
+		if (IsValid(InteractAction))
+		{
+			EnhancedInputComponent->BindAction(
+				InteractAction,
+				ETriggerEvent::Started,
+				this,
+				&AGoodbyeCharacter::HandleInteract
+			);
+		}
 	}
 }
 
@@ -478,6 +489,44 @@ void AGoodbyeCharacter::ResetGrabWeight()
 		PhysicsHandle->SetInterpolationSpeed(LightObjectInterpolationSpeed);
 	}
 }
+
+
+
+// Funzioni del Cargo
+void AGoodbyeCharacter::SetNearbyCargoTruck(ACargoTruckPawn* CargoTruck)
+{
+	if (!IsValid(CargoTruck))
+	{
+		return;
+	}
+
+	NearbyCargoTruck = CargoTruck;
+}
+
+
+void AGoodbyeCharacter::ClearNearbyCargoTruck(ACargoTruckPawn* CargoTruck)
+{
+	if (NearbyCargoTruck != CargoTruck)
+	{
+		return;
+	}
+
+	NearbyCargoTruck = nullptr;
+}
+
+
+void AGoodbyeCharacter::HandleInteract()
+{
+	if (!IsValid(NearbyCargoTruck))
+	{
+		return;
+	}
+
+	NearbyCargoTruck->EnterVehicle(this);
+}
+
+
+
 
 
 // Azioni di movimento
