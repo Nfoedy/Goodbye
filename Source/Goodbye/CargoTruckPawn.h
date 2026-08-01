@@ -14,6 +14,8 @@ class UPrimitiveComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
+class UInputAction;
+class UInputComponent;
 
 struct FHitResult;
 
@@ -47,6 +49,13 @@ public:
 	{
 		return bIsDriving;
 	}
+
+	
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+
+	// Fa uscire il giocatore dal Cargo e gli restituisce il controllo del Character
+	bool ExitVehicle();
 
 
 protected:
@@ -90,6 +99,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Camera")
 	TObjectPtr<UCameraComponent> Camera = nullptr;
 
+	// Azione generica di interazione associata al tasto E.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> InteractAction = nullptr;
+
 
 private:
 
@@ -109,6 +122,10 @@ private:
 
 	// Indica che il giocatore sta guidando
 	bool bIsDriving = false;
+
+
+	// Gestisce IA_Interact mentre il camion è posseduto
+	void HandleInteract();
 
 
 	// Eventi della zona di interazione

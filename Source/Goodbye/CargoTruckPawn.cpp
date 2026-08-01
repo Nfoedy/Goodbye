@@ -8,6 +8,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "EnhancedInputComponent.h"
+#include "InputAction.h"
 
 #include "GoodbyeCharacter.h"
 
@@ -91,6 +93,25 @@ void ACargoTruckPawn::BeginPlay()
 		DriverMesh->SetVisibility(false, true);
 
 		DriverMesh->SetHiddenInGame(true, true);
+	}
+}
+
+void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+
+	if (!IsValid(EnhancedInputComponent))
+	{
+		return;
+	}
+
+
+	if (IsValid(InteractAction))
+	{
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACargoTruckPawn::HandleInteract);
 	}
 }
 
@@ -260,6 +281,110 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 		LogTemp,
 		Display,
 		TEXT("Player entrato nel camion %s"),
+		*GetName()
+	);
+
+
+	return true;
+}
+
+
+// Interazione per uscire dal cargo
+void ACargoTruckPawn::HandleInteract()
+{
+	if (!bIsDriving)
+	{
+		return;
+	}
+
+	ExitVehicle();
+}
+
+
+// Uscita dal veicolo
+bool ACargoTruckPawn::ExitVehicle()
+{
+	// Il giocatore deve trovarsi realmente nel camion.
+	if (!bIsDriving)
+	{
+		return false;
+	}
+
+
+	if (!IsValid(DriverCharacter))
+	{
+		return false;
+	}
+
+
+	if (!IsValid(DriverExitPoint))
+	{
+		return false;
+	}
+
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (!IsValid(PlayerController))
+	{
+		return false;
+	}
+
+
+	// Posiziona il Character accanto alla portiera
+	// La collisione è ancora disabilitata, quindi non rischia di bloccarsi durante lo spostamento
+	FRotator ExitRotation =	DriverExitPoint->GetComponentRotation();
+
+	ExitRotation.Pitch = 0.0f;
+	ExitRotation.Roll = 0.0f;
+
+	DriverCharacter->SetActorLocationAndRotation(
+		DriverExitPoint->GetComponentLocation(),
+		ExitRotation,
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics
+	);
+
+
+	// Mostra nuovamente il Character reale.
+	DriverCharacter->SetActorHiddenInGame(false);
+
+
+	// Riattiva la collisione.
+	DriverCharacter->SetActorEnableCollision(true);
+
+
+	// Riattiva il movimento del Character.
+	if (UCharacterMovementComponent* CharacterMovement = DriverCharacter->GetCharacterMovement())
+	{
+		CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
+
+
+	// Nasconde la rappresentazione seduta.
+	if (IsValid(DriverMesh))
+	{
+		DriverMesh->SetVisibility(false, true);
+		DriverMesh->SetHiddenInGame(true, true);
+	}
+
+
+	// Il PlayerController torna a controllare il Character originale
+	PlayerController->Possess(DriverCharacter);
+
+
+	// Ripristina lo stato del camion.
+	bIsDriving = false;
+	bCanEnterVehicle = false;
+
+	NearbyCharacter = nullptr;
+
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("Player uscito dal camion %s"),
 		*GetName()
 	);
 
