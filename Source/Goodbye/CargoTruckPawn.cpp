@@ -5,53 +5,53 @@
 #include "Components/ChildActorComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "EnhancedInputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "EnhancedInputComponent.h"
 #include "InputAction.h"
 
 #include "GoodbyeCharacter.h"
 
-
 // Costruttore
-ACargoTruckPawn::ACargoTruckPawn()
+ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	// Il Tick non serve per ingresso, uscita e rilevamento
+	// Non serve un Tick personalizzato per ingresso, uscita e rilevamento del Character
 	PrimaryActorTick.bCanEverTick = false;
 
 
-	// Truck mesh
-	TruckMesh =	CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TruckMesh"));
-	SetRootComponent(TruckMesh);
-	TruckMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	TruckMesh->SetCollisionProfileName(TEXT("BlockAll"));
+	// AWheeledVehiclePawn possiede già la Skeletal Mesh principale.
+	USkeletalMeshComponent* VehicleMesh = GetMesh();
 
+	if (IsValid(VehicleMesh))
+	{
+		VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		VehicleMesh->SetCollisionProfileName(TEXT("Vehicle"));
+	}
 
-	// Cargo Zone
+	// CargoZone
 	CargoZoneChild = CreateDefaultSubobject<UChildActorComponent>(TEXT("CargoZoneChild"));
-	CargoZoneChild->SetupAttachment(TruckMesh);
+	CargoZoneChild->SetupAttachment(GetMesh());
 
-	// Zona di interact
+	// Zona di interazione
 	DriverInteractZone = CreateDefaultSubobject<UBoxComponent>(TEXT("DriverInteractZone"));
-	DriverInteractZone->SetupAttachment(TruckMesh);
+	DriverInteractZone->SetupAttachment(GetMesh());
 	DriverInteractZone->SetBoxExtent(FVector(100.0f, 100.0f, 100.0f));
 	DriverInteractZone->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	DriverInteractZone->SetCollisionResponseToAllChannels(ECR_Ignore);
-	DriverInteractZone->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	DriverInteractZone->SetCollisionResponseToChannel(ECC_Pawn,	ECR_Overlap);
 	DriverInteractZone->SetGenerateOverlapEvents(true);
 	DriverInteractZone->OnComponentBeginOverlap.AddDynamic(this, &ACargoTruckPawn::HandleDriverZoneBeginOverlap);
 	DriverInteractZone->OnComponentEndOverlap.AddDynamic(this, &ACargoTruckPawn::HandleDriverZoneEndOverlap);
 
 
-	// Punto di uscita
+	// Driver exit point
 	DriverExitPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverExitPoint"));
-	DriverExitPoint->SetupAttachment(TruckMesh);
-
-
-	// Driver
+	DriverExitPoint->SetupAttachment(GetMesh());
+	
+	// Driver Mesh
 	DriverSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverSeatPoint"));
-	DriverSeatPoint->SetupAttachment(TruckMesh);
+	DriverSeatPoint->SetupAttachment(GetMesh());
 
 	DriverMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DriverMesh"));
 	DriverMesh->SetupAttachment(DriverSeatPoint);
@@ -59,21 +59,17 @@ ACargoTruckPawn::ACargoTruckPawn()
 	DriverMesh->SetGenerateOverlapEvents(false);
 	DriverMesh->SetSimulatePhysics(false);
 
-
-	// Spring Arm
+	// Camera
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(TruckMesh);
+	SpringArm->SetupAttachment(GetMesh());
 	SpringArm->TargetArmLength = 600.0f;
 	SpringArm->bDoCollisionTest = true;
 	SpringArm->bUsePawnControlRotation = false;
 
-	// Camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 }
-
-
 
 // Begin Play
 void ACargoTruckPawn::BeginPlay()
@@ -87,19 +83,19 @@ void ACargoTruckPawn::BeginPlay()
 	bIsDriving = false;
 
 
-	// Il guidatore deve essere invisibile fino all'ingresso nel camion
+	// Il guidatore rimane invisibile fino all'ingresso del giocatore nel cargo.
 	if (IsValid(DriverMesh))
 	{
-		DriverMesh->SetVisibility(false, true);
-
-		DriverMesh->SetHiddenInGame(true, true);
+		DriverMesh->SetVisibility(false,true);
+		DriverMesh->SetHiddenInGame(true,true);
 	}
 }
 
+
+// Input
 void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 
@@ -111,12 +107,28 @@ void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 	if (IsValid(InteractAction))
 	{
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACargoTruckPawn::HandleInteract);
+		EnhancedInputComponent->BindAction(
+			InteractAction,
+			ETriggerEvent::Started,
+			this,
+			&ACargoTruckPawn::HandleInteract
+		);
 	}
 }
 
 
-// Character entrato nella zona
+void ACargoTruckPawn::HandleInteract()
+{
+	if (!bIsDriving)
+	{
+		return;
+	}
+
+	ExitVehicle();
+}
+
+
+// Char entrato nella driver zone
 void ACargoTruckPawn::HandleDriverZoneBeginOverlap(
 	UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,
@@ -155,7 +167,7 @@ void ACargoTruckPawn::HandleDriverZoneBeginOverlap(
 }
 
 
-// Character uscito dalla zona
+// Char uscito dalla driver zone
 void ACargoTruckPawn::HandleDriverZoneEndOverlap(
 	UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,
@@ -171,8 +183,8 @@ void ACargoTruckPawn::HandleDriverZoneEndOverlap(
 	}
 
 
-	// Disabilitando la collisione del Character durante l'ingresso potrebbe generare un EndOverlap
-	// In quel caso non dobbiamo cancellare il rif al DriverCharacter
+	// Disabilitando la collisione del Char durante l'ingresso potrebbe essere generato un EndOverlap
+	// Se il giocatore sta già guidando, non devo cancellare i riferimenti
 	if (bIsDriving)
 	{
 		return;
@@ -201,7 +213,7 @@ void ACargoTruckPawn::HandleDriverZoneEndOverlap(
 }
 
 
-// Ingresso nel camion
+// Ingresso nel cargo
 bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 {
 	if (bIsDriving)
@@ -221,7 +233,8 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 		return false;
 	}
 
-	// Può entrare soltanto il Character realmente presente 
+
+	// Può entrare soltanto il Character realmente presente nella zona di interazione.
 	if (RequestingCharacter != NearbyCharacter)
 	{
 		return false;
@@ -236,20 +249,21 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	}
 
 
-	// Conserviamo il Character originale
+	// Conserva il Character originale
 	DriverCharacter = RequestingCharacter;
 
 
-	// imposto lo stato prima di disabilitare la collisione del Character
+
+	// Lo stato viene impostato prima di disabilitare la collisione del Character
 	bIsDriving = true;
 	bCanEnterVehicle = false;
 
 
-	// Il Character non deve più considerare il cargo come una normale interazione vicina
+	// Il Character non deve più considerare il cargo come una normale interazione vicina.
 	DriverCharacter->ClearNearbyCargoTruck(this);
 
 
-	// Ferma il movimento del Character.
+	// Ferma e disabilita il movimento del Character
 	if (UCharacterMovementComponent* CharacterMovement = DriverCharacter->GetCharacterMovement())
 	{
 		CharacterMovement->StopMovementImmediately();
@@ -257,12 +271,12 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	}
 
 
-	// Il Character rimane nel mondo ma diventa invisibile e senza collisione
+	// Il Character rimane nel mondo ma diventa invisibile e privo di collisione.
 	DriverCharacter->SetActorHiddenInGame(true);
 	DriverCharacter->SetActorEnableCollision(false);
 
 
-	// Mostra la mesh seduta nella cabina
+	// Mostra la rappresentazione seduta nella cabina.
 	if (IsValid(DriverMesh))
 	{
 		DriverMesh->SetVisibility(true, true);
@@ -270,7 +284,7 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	}
 
 
-	// Il PlayerController passa dal Character al camion
+	// Il PlayerController passa dal Character al cargo
 	PlayerController->Possess(this);
 
 
@@ -289,22 +303,9 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 }
 
 
-// Interazione per uscire dal cargo
-void ACargoTruckPawn::HandleInteract()
-{
-	if (!bIsDriving)
-	{
-		return;
-	}
-
-	ExitVehicle();
-}
-
-
-// Uscita dal veicolo
+// Uscita dal cargo
 bool ACargoTruckPawn::ExitVehicle()
 {
-	// Il giocatore deve trovarsi realmente nel camion.
 	if (!bIsDriving)
 	{
 		return false;
@@ -331,14 +332,18 @@ bool ACargoTruckPawn::ExitVehicle()
 	}
 
 
-	// Posiziona il Character accanto alla portiera
-	// La collisione è ancora disabilitata, quindi non rischia di bloccarsi durante lo spostamento
-	FRotator ExitRotation =	DriverExitPoint->GetComponentRotation();
+	// Conserva temporaneamente il riferimento, prima di azzerare DriverCharacter.
+	AGoodbyeCharacter* ExitingCharacter = DriverCharacter;
+
+	// Utilizziamo soltanto lo Yaw del punto di uscita, così il Character non viene inclinato insieme al camion.
+	FRotator ExitRotation = DriverExitPoint->GetComponentRotation();
 
 	ExitRotation.Pitch = 0.0f;
 	ExitRotation.Roll = 0.0f;
 
-	DriverCharacter->SetActorLocationAndRotation(
+
+	// La collisione del Char è ancora disabilitata, quindi non può essere spostato senza bloccarsi contro il camion
+	ExitingCharacter->SetActorLocationAndRotation(
 		DriverExitPoint->GetComponentLocation(),
 		ExitRotation,
 		false,
@@ -347,18 +352,18 @@ bool ACargoTruckPawn::ExitVehicle()
 	);
 
 
-	// Mostra nuovamente il Character reale.
-	DriverCharacter->SetActorHiddenInGame(false);
+	// Mostra nuovamente il Character.
+	ExitingCharacter->SetActorHiddenInGame(false);
 
 
 	// Riattiva la collisione.
-	DriverCharacter->SetActorEnableCollision(true);
+	ExitingCharacter->SetActorEnableCollision(true);
 
 
-	// Riattiva il movimento del Character.
-	if (UCharacterMovementComponent* CharacterMovement = DriverCharacter->GetCharacterMovement())
+	// Riattiva il movimento.
+	if (UCharacterMovementComponent* CharacterMovement = ExitingCharacter->GetCharacterMovement())
 	{
-		CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+		CharacterMovement->SetMovementMode(MOVE_Walking);
 	}
 
 
@@ -370,15 +375,16 @@ bool ACargoTruckPawn::ExitVehicle()
 	}
 
 
-	// Il PlayerController torna a controllare il Character originale
-	PlayerController->Possess(DriverCharacter);
+	// Restituisce il controllo al Character originale.
+	PlayerController->Possess(ExitingCharacter);
 
 
-	// Ripristina lo stato del camion.
+	// Ripristina lo stato interno del camion.
 	bIsDriving = false;
 	bCanEnterVehicle = false;
 
 	NearbyCharacter = nullptr;
+	DriverCharacter = nullptr;
 
 
 	UE_LOG(
