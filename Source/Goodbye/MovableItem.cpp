@@ -40,6 +40,9 @@ AMovableItem::AMovableItem()
 	// Collega l'evento di collisione della mesh alla funzione HandleItemHit()
 	ItemMesh->OnComponentHit.AddDynamic(this, &AMovableItem::HandleItemHit);
 
+	// Ignora la cam
+	ItemMesh->SetCollisionResponseToChannel(ECC_Camera,	ECR_Ignore);
+
 
 	// Crea il componente che visualizza la barra della vita
 	HealthWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthWidget"));

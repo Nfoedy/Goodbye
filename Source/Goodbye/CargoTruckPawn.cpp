@@ -122,6 +122,9 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 		{
 			2.80f
 		};
+
+		// Massa del cargo in kg, Una massa elevata rende trascurabili le spinte provenienti dal Character o dagli oggetti piccoli.
+		VehicleMovement->Mass = 2500.0f;
 	}
 
 	// CargoZone
@@ -166,12 +169,65 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 	Camera->bUsePawnControlRotation = false;
 }
 
+
+// Attiva/ disattiva della simulazione fisica
+void ACargoTruckPawn::SetVehicleSimulationEnabled(bool bEnabled)
+{
+	USkeletalMeshComponent* VehicleMesh = GetMesh();
+
+	if (!IsValid(VehicleMesh))
+	{
+		return;
+	}
+
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (bEnabled)
+	{
+		// Riattiva la simulazione fisica del telaio.
+		VehicleMesh->SetSimulatePhysics(true);
+
+		if (IsValid(VehicleMovement))
+		{
+			VehicleMovement->SetParked(false);
+			VehicleMovement->SetSleeping(false);
+		}
+
+		VehicleMesh->WakeAllRigidBodies();
+
+		return;
+	}
+
+
+	// Prima di parcheggiare vengono azzerati gli input eventualmente rimasti attivi
+	if (IsValid(VehicleMovement))
+	{
+		VehicleMovement->SetThrottleInput(0.0f);
+		VehicleMovement->SetBrakeInput(0.0f);
+		VehicleMovement->SetSteeringInput(0.0f);
+
+		VehicleMovement->SetParked(true);
+		VehicleMovement->SetSleeping(true);
+	}
+
+
+	// Quando questa funzione viene chiamata dal timer il cargo è già quasi fermo
+	VehicleMesh->SetAllPhysicsLinearVelocity(FVector::ZeroVector, false);
+	VehicleMesh->SetAllPhysicsAngularVelocityInRadians(FVector::ZeroVector, false);
+	VehicleMesh->PutAllRigidBodiesToSleep();
+	VehicleMesh->SetSimulatePhysics(false);
+}
+
+
 // Begin Play
 void ACargoTruckPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
 	AttachComponentsToVehicleBody();
+
+	// Il cargo parte parcheggiato e non può essere spinto
+	SetVehicleSimulationEnabled(false);
 
 	NearbyCharacter = nullptr;
 	DriverCharacter = nullptr;
@@ -430,6 +486,12 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	bIsDriving = true;
 	bCanEnterVehicle = false;
 
+	// Interrompe un eventuale controllo di parcheggi.
+	StopAutoParkCheck();
+
+	// Riattiva la simulazione Chaos
+	SetVehicleSimulationEnabled(true);
+
 
 	// Il Character non deve più considerare il cargo come una normale interazione vicina.
 	DriverCharacter->ClearNearbyCargoTruck(this);
@@ -567,17 +629,12 @@ bool ACargoTruckPawn::ExitVehicle()
 	NearbyCharacter = nullptr;
 	DriverCharacter = nullptr;
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("Player uscito dal camion %s"),
-		*GetName()
-	);
-
+	// Il cargo continua liberamente per inerzia. Verrà parcheggiato soltanto quando sarà fermo.
+	StartAutoParkCheck();
 
 	return true;
 }
+
 
 // Accellerazione 
 void ACargoTruckPawn::HandleThrottle(const FInputActionValue& Value)
@@ -752,5 +809,124 @@ void ACargoTruckPawn::AttachComponentsToVehicleBody()
 			"Componenti del camion collegati al bone %s"
 		),
 		*VehicleBodyBoneName.ToString()
+	);
+}
+
+
+// Implementa il timer per il check
+void ACargoTruckPawn::StartAutoParkCheck()
+{
+	// Il cargo non deve essere parcheggiato automaticamente mentre è guidato.
+	if (bIsDriving)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* VehicleMesh = GetMesh();
+
+	if (!IsValid(VehicleMesh))
+	{
+		return;
+	}
+
+
+	// Se la simulazione è già disattivata, il cargo è già parcheggiato.
+	if (!VehicleMesh->IsSimulatingPhysics())
+	{
+		return;
+	}
+
+
+	StopAutoParkCheck();
+
+	AutoParkStableElapsed = 0.0f;
+
+
+	GetWorldTimerManager().SetTimer(
+		AutoParkTimerHandle,
+		this,
+		&ACargoTruckPawn::CheckAutoPark,
+		AutoParkCheckInterval,
+		true,
+		AutoParkCheckInterval
+	);
+}
+
+
+void ACargoTruckPawn::StopAutoParkCheck()
+{
+	GetWorldTimerManager().ClearTimer(AutoParkTimerHandle);
+
+	AutoParkStableElapsed = 0.0f;
+}
+
+
+// Controlla se il cargo è fermo
+void ACargoTruckPawn::CheckAutoPark()
+{
+	// Se nel frattempo il Player è rientrato interrompiamo il controllo.
+	if (bIsDriving)
+	{
+		StopAutoParkCheck();
+		return;
+	}
+
+
+	USkeletalMeshComponent* VehicleMesh = GetMesh();
+
+	if (!IsValid(VehicleMesh))
+	{
+		StopAutoParkCheck();
+		return;
+	}
+
+
+	if (!VehicleMesh->IsSimulatingPhysics())
+	{
+		StopAutoParkCheck();
+		return;
+	}
+
+
+	const FName VehicleBodyBoneName(TEXT("carBody"));
+
+
+	const FVector LinearVelocity = VehicleMesh->GetPhysicsLinearVelocity(VehicleBodyBoneName);
+
+	const FVector AngularVelocity = VehicleMesh->GetPhysicsAngularVelocityInDegrees(VehicleBodyBoneName);
+
+	const float LinearSpeed = LinearVelocity.Size();
+
+	const float AngularSpeed = AngularVelocity.Size();
+
+
+	const bool bIsAlmostStopped = LinearSpeed <= AutoParkLinearSpeedThreshold && AngularSpeed <= AutoParkAngularSpeedThreshold;
+
+
+	if (bIsAlmostStopped)
+	{
+		AutoParkStableElapsed += AutoParkCheckInterval;
+	}
+	else
+	{
+		// Il cargo si è mosso nuovamente: ricominciamo il conteggio
+		AutoParkStableElapsed = 0.0f;
+	}
+
+
+	if (AutoParkStableElapsed <	AutoParkStableDuration)
+	{
+		return;
+	}
+
+
+	StopAutoParkCheck();
+	SetVehicleSimulationEnabled(false);
+
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("Camion parcheggiato automaticamente")
 	);
 }

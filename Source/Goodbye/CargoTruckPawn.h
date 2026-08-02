@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TimerManager.h"
 #include "WheeledVehiclePawn.h"
 #include "CargoTruckPawn.generated.h"
 
@@ -171,6 +172,50 @@ private:
 
 	// Collega i componenti visivi e di gameplay al bone fisico principale del cargo.
 	void AttachComponentsToVehicleBody();
+
+
+	// Attiva o disattiva la simulazione fisica del cargo
+	void SetVehicleSimulationEnabled(bool bEnabled);
+
+
+	// Avvia il controllo che parcheggerà automaticamente il cargo quando avrà smesso di muoversi
+	void StartAutoParkCheck();
+
+
+	// Interrompe il controllo automatico del parcheggio.
+	void StopAutoParkCheck();
+
+
+	// Controlla periodicamente la velocità del cargo.
+	void CheckAutoPark();
+
+
+	// Intervallo tra i controlli della velocità.
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Parking", meta = (ClampMin = "0.05"))
+	float AutoParkCheckInterval = 0.20f;
+
+
+	// Velocità lineare sotto la quale il cargo viene considerato quasi fermo, in cm/s.
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Parking", meta = (ClampMin = "0.0"))
+	float AutoParkLinearSpeedThreshold = 5.0f;
+
+
+	// Velocità angolare sotto la quale il cargo viene considerato quasi fermo, in gradi/s.
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Parking", meta = (ClampMin = "0.0"))
+	float AutoParkAngularSpeedThreshold = 2.0f;
+
+
+	// Tempo per cui il cargo deve rimanere quasi fermo prima di essere bloccato.
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Parking", meta = (ClampMin = "0.0"))
+	float AutoParkStableDuration = 1.0f;
+
+
+	// Tempo accumulato sotto le soglie di movimento.
+	float AutoParkStableElapsed = 0.0f;
+
+
+	// Timer utilizzato dal controllo automatico.
+	FTimerHandle AutoParkTimerHandle;
 
 
 	// Richiamata quando un Actor entra nella zona di interazione della portiera.
