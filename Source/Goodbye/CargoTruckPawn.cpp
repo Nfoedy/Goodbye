@@ -13,6 +13,8 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "CargoTruckFrontWheel.h"
 #include "CargoTruckRearWheel.h"
+#include "Curves/RichCurve.h"
+#include "InputActionValue.h"
 
 #include "GoodbyeCharacter.h"
 
@@ -21,7 +23,6 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 {
 	// Non serve un Tick personalizzato per ingresso, uscita e rilevamento del Character
 	PrimaryActorTick.bCanEverTick = false;
-
 
 	// AWheeledVehiclePawn possiede già la Skeletal Mesh principale.
 	USkeletalMeshComponent* VehicleMesh = GetMesh();
@@ -62,6 +63,65 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 		VehicleMovement->WheelSetups[3].WheelClass = UCargoTruckRearWheel::StaticClass();
 		VehicleMovement->WheelSetups[3].BoneName = FName(TEXT("wheelRR"));
 		VehicleMovement->WheelSetups[3].AdditionalOffset = FVector::ZeroVector;
+
+
+		// Simulazione meccanica
+		VehicleMovement->bMechanicalSimEnabled = true;
+
+
+		// Motore
+		VehicleMovement->EngineSetup.MaxTorque = 500.0f;
+		VehicleMovement->EngineSetup.MaxRPM = 4500.0f;
+		VehicleMovement->EngineSetup.EngineIdleRPM = 800.0f;
+		VehicleMovement->EngineSetup.EngineBrakeEffect = 0.1f;
+
+
+		// Curva della coppia del motore
+		if (FRichCurve* TorqueCurve = VehicleMovement->EngineSetup.TorqueCurve.GetRichCurve())
+		{
+			TorqueCurve->Reset();
+
+			TorqueCurve->AddKey(0.0f, 0.40f);
+			TorqueCurve->AddKey(800.0f, 0.60f);
+			TorqueCurve->AddKey(1500.0f, 0.85f);
+			TorqueCurve->AddKey(2500.0f, 1.00f);
+			TorqueCurve->AddKey(3500.0f, 0.85f);
+			TorqueCurve->AddKey(4500.0f, 0.55f);
+		}
+
+
+		// Differenziale
+		// Trazione posteriore
+		VehicleMovement->DifferentialSetup.DifferentialType = EVehicleDifferential::RearWheelDrive;
+
+
+		// Marcia unica
+		// Gestione automatica di marcia avanti e retromarcia
+		VehicleMovement->TransmissionSetup.bUseAutomaticGears = true;
+		VehicleMovement->TransmissionSetup.bUseAutoReverse = true;
+
+		// Tempo necessario per passare tra avanti e retromarcia
+		VehicleMovement->TransmissionSetup.GearChangeTime = 0.15f;
+
+		// Rapporto finale
+		VehicleMovement->TransmissionSetup.FinalRatio = 4.10f;
+
+		// Perdita meccanica della trasmissione
+		VehicleMovement->TransmissionSetup.TransmissionEfficiency = 0.90f;
+
+
+		// Una sola marcia avanti
+		VehicleMovement->TransmissionSetup.ForwardGearRatios =
+		{
+			2.80f
+		};
+
+
+		// Una sola retromarcia
+		VehicleMovement->TransmissionSetup.ReverseGearRatios =
+		{
+			2.80f
+		};
 	}
 
 	// CargoZone
@@ -111,6 +171,8 @@ void ACargoTruckPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+	AttachComponentsToVehicleBody();
+
 	NearbyCharacter = nullptr;
 	DriverCharacter = nullptr;
 
@@ -134,12 +196,9 @@ void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 
-	if (!IsValid(EnhancedInputComponent))
-	{
-		return;
-	}
+	if (!IsValid(EnhancedInputComponent)) return;
 
-
+	// Entrata e uscita dal camion.
 	if (IsValid(InteractAction))
 	{
 		EnhancedInputComponent->BindAction(
@@ -147,6 +206,84 @@ void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 			ETriggerEvent::Started,
 			this,
 			&ACargoTruckPawn::HandleInteract
+		);
+	}
+
+
+	// Accelerazione.
+	if (IsValid(ThrottleAction))
+	{
+		EnhancedInputComponent->BindAction(
+			ThrottleAction,
+			ETriggerEvent::Triggered,
+			this,
+			&ACargoTruckPawn::HandleThrottle
+		);
+
+		EnhancedInputComponent->BindAction(
+			ThrottleAction,
+			ETriggerEvent::Completed,
+			this,
+			&ACargoTruckPawn::StopThrottle
+		);
+
+		EnhancedInputComponent->BindAction(
+			ThrottleAction,
+			ETriggerEvent::Canceled,
+			this,
+			&ACargoTruckPawn::StopThrottle
+		);
+	}
+
+
+	// Freno.
+	if (IsValid(BrakeAction))
+	{
+		EnhancedInputComponent->BindAction(
+			BrakeAction,
+			ETriggerEvent::Triggered,
+			this,
+			&ACargoTruckPawn::HandleBrake
+		);
+
+		EnhancedInputComponent->BindAction(
+			BrakeAction,
+			ETriggerEvent::Completed,
+			this,
+			&ACargoTruckPawn::StopBrake
+		);
+
+		EnhancedInputComponent->BindAction(
+			BrakeAction,
+			ETriggerEvent::Canceled,
+			this,
+			&ACargoTruckPawn::StopBrake
+		);
+	}
+
+
+	// Sterzo.
+	if (IsValid(SteeringAction))
+	{
+		EnhancedInputComponent->BindAction(
+			SteeringAction,
+			ETriggerEvent::Triggered,
+			this,
+			&ACargoTruckPawn::HandleSteering
+		);
+
+		EnhancedInputComponent->BindAction(
+			SteeringAction,
+			ETriggerEvent::Completed,
+			this,
+			&ACargoTruckPawn::StopSteering
+		);
+
+		EnhancedInputComponent->BindAction(
+			SteeringAction,
+			ETriggerEvent::Canceled,
+			this,
+			&ACargoTruckPawn::StopSteering
 		);
 	}
 }
@@ -410,6 +547,15 @@ bool ACargoTruckPawn::ExitVehicle()
 	}
 
 
+	// Azzera tutti gli input prima di lasciare il cargo
+	if (UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent()))
+	{
+		VehicleMovement->SetThrottleInput(0.0f);
+		VehicleMovement->SetBrakeInput(0.0f);
+		VehicleMovement->SetSteeringInput(0.0f);
+	}
+
+
 	// Restituisce il controllo al Character originale.
 	PlayerController->Possess(ExitingCharacter);
 
@@ -431,4 +577,180 @@ bool ACargoTruckPawn::ExitVehicle()
 
 
 	return true;
+}
+
+// Accellerazione 
+void ACargoTruckPawn::HandleThrottle(const FInputActionValue& Value)
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	const float ThrottleValue = FMath::Clamp(Value.Get<float>(), 0.0f,	1.0f);
+
+	VehicleMovement->SetThrottleInput(ThrottleValue);
+}
+
+// Decellerazione quando non viene premuto l'accelleratore
+void ACargoTruckPawn::StopThrottle()
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	VehicleMovement->SetThrottleInput(0.0f);
+}
+
+// Freno
+void ACargoTruckPawn::HandleBrake(const FInputActionValue& Value)
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	const float BrakeValue = FMath::Clamp(Value.Get<float>(), 0.0f, 1.0f);
+
+	VehicleMovement->SetBrakeInput(BrakeValue);
+}
+
+// Rilascio del freno
+void ACargoTruckPawn::StopBrake()
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	VehicleMovement->SetBrakeInput(0.0f);
+}
+
+// Sterzo
+void ACargoTruckPawn::HandleSteering(const FInputActionValue& Value)
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	const float SteeringValue = FMath::Clamp(Value.Get<float>(), -1.0f,	1.0f);
+
+	VehicleMovement->SetSteeringInput(SteeringValue);
+}
+
+
+void ACargoTruckPawn::StopSteering()
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	VehicleMovement->SetSteeringInput(0.0f);
+}
+
+// Attacca i componenti al corpo del Cargo
+void ACargoTruckPawn::AttachComponentsToVehicleBody()
+{
+	USkeletalMeshComponent* VehicleMesh = GetMesh();
+
+	if (!IsValid(VehicleMesh))
+	{
+		return;
+	}
+
+
+	const FName VehicleBodyBoneName(TEXT("carBody"));
+
+	if (VehicleMesh->GetBoneIndex(VehicleBodyBoneName) == INDEX_NONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT(
+				"Impossibile trovare il bone %s nella mesh del camion"
+			),
+			*VehicleBodyBoneName.ToString()
+		);
+
+		return;
+	}
+
+
+	// Mantiene le posizioni già configurate nel BP ma cambia riferimento dal Mesh Componente al bone fisico
+	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepWorld,	EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, false);
+
+
+	if (IsValid(CargoZoneChild))
+	{
+		CargoZoneChild->AttachToComponent(
+			VehicleMesh,
+			AttachmentRules,
+			VehicleBodyBoneName
+		);
+	}
+
+
+	if (IsValid(DriverInteractZone))
+	{
+		DriverInteractZone->AttachToComponent(
+			VehicleMesh,
+			AttachmentRules,
+			VehicleBodyBoneName
+		);
+	}
+
+
+	if (IsValid(DriverExitPoint))
+	{
+		DriverExitPoint->AttachToComponent(
+			VehicleMesh,
+			AttachmentRules,
+			VehicleBodyBoneName
+		);
+	}
+
+
+	if (IsValid(DriverSeatPoint))
+	{
+		DriverSeatPoint->AttachToComponent(
+			VehicleMesh,
+			AttachmentRules,
+			VehicleBodyBoneName
+		);
+	}
+
+
+	if (IsValid(SpringArm))
+	{
+		SpringArm->AttachToComponent(
+			VehicleMesh,
+			AttachmentRules,
+			VehicleBodyBoneName
+		);
+	}
+
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT(
+			"Componenti del camion collegati al bone %s"
+		),
+		*VehicleBodyBoneName.ToString()
+	);
 }

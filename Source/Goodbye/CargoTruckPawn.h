@@ -18,6 +18,7 @@ class USkeletalMeshComponent;
 class USpringArmComponent;
 
 struct FHitResult;
+struct FInputActionValue;
 
 
 UCLASS()
@@ -105,6 +106,21 @@ protected:
 	TObjectPtr<UInputAction> InteractAction = nullptr;
 
 
+	// Accelerazione del cargo.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> ThrottleAction = nullptr;
+
+
+	// Freno del cargo.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> BrakeAction = nullptr;
+
+
+	// Sterzo del cargo.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> SteeringAction = nullptr;
+
+
 private:
 
 	// Character attualmente vicino alla portiera.
@@ -126,12 +142,38 @@ private:
 	bool bIsDriving = false;
 
 
-	// Gestisce IA_Interact quando il camion è posseduto.
+	// Gestisce IA_Interact quando il cargo è posseduto.
 	void HandleInteract();
 
 
-	// Richiamata quando un Actor entra nella zona
-	// di interazione della portiera.
+	// Gestisce l'accelerazione.
+	void HandleThrottle(const FInputActionValue& Value);
+
+
+	// Azzera l'accelerazione quando W viene rilasciato.
+	void StopThrottle();
+
+
+	// Gestisce il freno.
+	void HandleBrake(const FInputActionValue& Value);
+
+
+	// Azzera il freno quando S viene rilasciato.
+	void StopBrake();
+
+
+	// Gestisce lo sterzo.
+	void HandleSteering(const FInputActionValue& Value);
+
+
+	// Riporta lo sterzo al centro.
+	void StopSteering();
+
+	// Collega i componenti visivi e di gameplay al bone fisico principale del cargo.
+	void AttachComponentsToVehicleBody();
+
+
+	// Richiamata quando un Actor entra nella zona di interazione della portiera.
 	UFUNCTION()
 	void HandleDriverZoneBeginOverlap(
 		UPrimitiveComponent* OverlappedComponent,
