@@ -10,6 +10,9 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
+#include "ChaosWheeledVehicleMovementComponent.h"
+#include "CargoTruckFrontWheel.h"
+#include "CargoTruckRearWheel.h"
 
 #include "GoodbyeCharacter.h"
 
@@ -27,6 +30,38 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 	{
 		VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		VehicleMesh->SetCollisionProfileName(TEXT("Vehicle"));
+	}
+
+	// Configuarazione delle ruote 
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (IsValid(VehicleMovement))
+	{
+		VehicleMovement->WheelSetups.SetNum(4);
+
+
+		// Ruota anteriore sinistra
+		VehicleMovement->WheelSetups[0].WheelClass = UCargoTruckFrontWheel::StaticClass();
+		VehicleMovement->WheelSetups[0].BoneName = FName(TEXT("wheelFL"));
+		VehicleMovement->WheelSetups[0].AdditionalOffset = FVector::ZeroVector;
+
+
+		// Ruota anteriore destra
+		VehicleMovement->WheelSetups[1].WheelClass = UCargoTruckFrontWheel::StaticClass();
+		VehicleMovement->WheelSetups[1].BoneName = FName(TEXT("wheelFR"));
+		VehicleMovement->WheelSetups[1].AdditionalOffset = FVector::ZeroVector;
+
+
+		// Ruota posteriore sinistra
+		VehicleMovement->WheelSetups[2].WheelClass = UCargoTruckRearWheel::StaticClass();
+		VehicleMovement->WheelSetups[2].BoneName = FName(TEXT("wheelRL"));
+		VehicleMovement->WheelSetups[2].AdditionalOffset = FVector::ZeroVector;
+
+
+		// Ruota posteriore destra
+		VehicleMovement->WheelSetups[3].WheelClass = UCargoTruckRearWheel::StaticClass();
+		VehicleMovement->WheelSetups[3].BoneName = FName(TEXT("wheelRR"));
+		VehicleMovement->WheelSetups[3].AdditionalOffset = FVector::ZeroVector;
 	}
 
 	// CargoZone
