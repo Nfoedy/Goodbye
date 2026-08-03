@@ -19,6 +19,9 @@ enum class EGameDifficulty : uint8
 };
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMatchTimeChangedSignature, int32, NewRemainingTimeSeconds);
+
+
 
 /**
  *  Goodbye Game Mode
@@ -37,6 +40,25 @@ public:
 	// Prova a completare la partita quando il cargo raggiunge l'uscita
 	bool TryCompleteMatch();
 
+	// Evento richiamato ogni volta che cambia il tempo rimanente
+	UPROPERTY(BlueprintAssignable, Category = "Game|Timer")
+	FMatchTimeChangedSignature OnMatchTimeChanged;
+
+
+	// Restituisce il tempo rimanente in secondi
+	UFUNCTION(BlueprintPure, Category = "Game|Timer")
+	int32 GetRemainingTimeSeconds() const
+	{
+		return RemainingTimeSeconds;
+	}
+
+	// Restituisce il punteggio necessario per vincere
+	UFUNCTION(BlueprintPure, Category = "Game|Difficulty")
+	int32 GetRequiredScore() const
+	{
+		return RequiredScore;
+	}
+
 
 protected:
 
@@ -45,7 +67,7 @@ protected:
 
 	// Durata complessiva della partita, espressa in secondi
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game|Timer", meta = (ClampMin = "1"))
-	int32 MatchDurationSeconds = 30;
+	int32 MatchDurationSeconds = 240;
 
 
 	// Tempo ancora disponibile prima della fine della partita

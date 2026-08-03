@@ -125,6 +125,9 @@ void AGoodbyeGameMode::StartMatchTimer()
 	// Imposta il tempo iniziale della partita
 	RemainingTimeSeconds = MatchDurationSeconds;
 
+	// Comunica alla UI il valore del timer
+	OnMatchTimeChanged.Broadcast(RemainingTimeSeconds);
+
 
 	const int32 Minutes = RemainingTimeSeconds / 60;
 	const int32 Seconds = RemainingTimeSeconds % 60;
@@ -155,6 +158,9 @@ void AGoodbyeGameMode::StartMatchTimer()
 void AGoodbyeGameMode::UpdateMatchTimer()
 {
 	RemainingTimeSeconds = FMath::Max(RemainingTimeSeconds - 1,	0);
+
+	// Comunica alla UI il nuovo tempo rimanente
+	OnMatchTimeChanged.Broadcast(RemainingTimeSeconds);
 
 	const int32 Minutes = RemainingTimeSeconds / 60;
 	const int32 Seconds = RemainingTimeSeconds % 60;
