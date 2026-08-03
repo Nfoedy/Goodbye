@@ -12,6 +12,7 @@ class UInputAction;
 class UPhysicsHandleComponent;
 class UPrimitiveComponent;
 class ACargoTruckPawn;
+class USceneComponent;
 
 struct FInputActionValue;
 
@@ -67,6 +68,10 @@ private:
 	// Telecamera principale utilizzata dal giocatore
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent = nullptr;
+
+	// Punto davanti alla Camera verso cui viene trasportato l'oggetto
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grab", meta = (AllowPrivateAccess = "true"))
+	USceneComponent* GrabHoldPoint = nullptr;
 
 
 	// Componente che permette di afferrare e trascinare oggetti 

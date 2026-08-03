@@ -12,6 +12,7 @@
 #include "CollisionQueryParams.h"
 #include "Engine/World.h"
 #include "CargoTruckPawn.h"
+#include "Components/SceneComponent.h"
 
 
 // Costruttore 
@@ -55,6 +56,15 @@ AGoodbyeCharacter::AGoodbyeCharacter()
 
 	FirstPersonCameraComponent->bEnableFirstPersonScale = false;
 	FirstPersonCameraComponent->FirstPersonScale = 1.0f;
+
+	// Crea il punto verso cui viene trasportato l'oggetto afferrato
+	GrabHoldPoint = CreateDefaultSubobject<USceneComponent>(TEXT("Grab Hold Point"));
+
+	// Il punto segue posizione e rotazione della Camera.
+	GrabHoldPoint->SetupAttachment(FirstPersonCameraComponent);
+
+	// Posiziona l'oggetto davanti e leggermente sotto la visuale.
+	GrabHoldPoint->SetRelativeLocation(FVector(140.0f, 0.0f, -30.0f));
 
 	// Configura le mesh
 	GetMesh()->SetOwnerNoSee(true);
@@ -387,28 +397,27 @@ void AGoodbyeCharacter::StopGrab(const FInputActionValue& Value)
 }
 
 
+// Oggetto raccolto
 void AGoodbyeCharacter::UpdateGrabbedObject()
 {
-	if (!PhysicsHandle || !PhysicsHandle->GetGrabbedComponent() || !FirstPersonCameraComponent)
+	if (!PhysicsHandle || !PhysicsHandle->GetGrabbedComponent() || !IsValid(GrabHoldPoint))
 	{
 		return;
 	}
+	
+	const FVector TargetLocation = GrabHoldPoint->GetComponentLocation();
 
-	const FVector CameraLocation = FirstPersonCameraComponent->GetComponentLocation();
+	const FRotator TargetRotation = GrabHoldPoint->GetComponentRotation();
 
-	const FVector CameraForward = FirstPersonCameraComponent->GetForwardVector();
-
-	const FVector TargetLocation = CameraLocation + CameraForward * HoldDistance;
-
-	// Il Physics Handle trascina l'oggetto verso il punto davanti alla telecamera.
-	PhysicsHandle->SetTargetLocation(TargetLocation);
+	// Aggiorna sia la posizione sia la rotazione
+	PhysicsHandle->SetTargetLocationAndRotation(TargetLocation, TargetRotation);
 }
 
 
 // Grab compeltato
 void AGoodbyeCharacter::CompleteGrab()
 {
-	if (!bGrabInputHeld || !PhysicsHandle || !IsValid(PendingGrabComponent) || !PendingGrabComponent->IsSimulatingPhysics())
+	if (!bGrabInputHeld || !PhysicsHandle || !IsValid(GrabHoldPoint) || !IsValid(PendingGrabComponent) || !PendingGrabComponent->IsSimulatingPhysics())
 	{
 		CancelPendingGrab();
 		return;
@@ -427,11 +436,18 @@ void AGoodbyeCharacter::CompleteGrab()
 
 	GrabbedComponent->WakeAllRigidBodies();
 
+	// Elimina l'eventuale rotazione che l'oggetto ha dopo essere stato afferrato
+	GrabbedComponent->SetPhysicsAngularVelocityInRadians(FVector::ZeroVector);
+
+	// Il Grab Hold Point assume l'orientamento corrente dell'oggetto.
+	// Essendo collegato alla Camera, manterrà questo orientamento relativo mentre il giocatore ruota la visuale.
+	GrabHoldPoint->SetWorldRotation(GrabbedComponent->GetComponentRotation());
+
 	// Configura il comportamento del Physics Handle usando la massa reale del componente
 	ApplyGrabWeight(GrabbedComponent->GetMass());
 
 	// Soltanto adesso viene eseguita la presa fisica.
-	PhysicsHandle->GrabComponentAtLocation(GrabbedComponent, NAME_None, GrabWorldPoint);
+	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabWorldPoint, GrabHoldPoint->GetComponentRotation());
 
 	PendingGrabComponent = nullptr;
 	PendingLocalGrabPoint = FVector::ZeroVector;
