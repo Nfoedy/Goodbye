@@ -6,6 +6,9 @@
 #include "GoodbyeGameMode.generated.h"
 
 
+class ACargoZone;
+
+
 // Enum per la difficoltà
 UENUM(BlueprintType)
 enum class EGameDifficulty : uint8
@@ -55,6 +58,17 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Game|Difficulty")
 	int32 RequiredScore = 8;
 
+
+	// Numero di oggetti attualmente caricati nel cargo.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Game|Score")
+	int32 LoadedItemCount = 0;
+
+
+	// Punteggio attualmente presente nel cargo.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Game|Score")
+	int32 CurrentScore = 0;
+
+
 private:
 
 	// Avvia il countdown della partita
@@ -75,6 +89,18 @@ private:
 
 	// Configura il punteggio richiesto in base alla difficoltà
 	void ConfigureDifficulty();
+
+	// Cargo Zone utilizzata dalla partita
+	UPROPERTY(Transient)
+	TObjectPtr<ACargoZone> CargoZone = nullptr;
+
+	// Cerca la Cargo Zone e si collega al suo evento.
+	void BindToCargoZone();
+
+
+	// Riceve il nuovo conteggio e il nuovo punteggio dalla Cargo Zone.
+	UFUNCTION()
+	void HandleCargoChanged(int32 NewLoadedItemCount, int32 NewCargoScore);
 };
 
 
