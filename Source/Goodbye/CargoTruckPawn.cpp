@@ -521,6 +521,9 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	// Il PlayerController passa dal Character al cargo
 	PlayerController->Possess(this);
 
+	// Disattiva il mirino durante la guida
+	DriverCharacter->SetAimDotVisibility(false);
+
 
 	NearbyCharacter = nullptr;
 
@@ -620,6 +623,9 @@ bool ACargoTruckPawn::ExitVehicle()
 
 	// Restituisce il controllo al Character originale.
 	PlayerController->Possess(ExitingCharacter);
+
+	// Attiva il mirino dell'HUD
+	ExitingCharacter->SetAimDotVisibility(true);
 
 
 	// Ripristina lo stato interno del camion.

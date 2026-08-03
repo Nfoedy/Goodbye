@@ -57,6 +57,10 @@ public:
 	// Rimuove il camion quando il Character si allontana
 	void ClearNearbyCargoTruck(ACargoTruckPawn* CargoTruck);
 
+	// Comunica al Blueprint se il mirino deve essere visibile
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
+	void SetAimDotVisibility(bool bVisible);
+
 
 /* COMPONENTI */
 private:
