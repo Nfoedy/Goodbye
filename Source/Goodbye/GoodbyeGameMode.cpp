@@ -10,7 +10,51 @@ void AGoodbyeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ConfigureDifficulty();
 	StartMatchTimer();
+}
+
+// Configura la difficoltà
+void AGoodbyeGameMode::ConfigureDifficulty()
+{
+	switch (SelectedDifficulty)
+	{
+	case EGameDifficulty::Easy:
+	{
+		RequiredScore = 5;
+		break;
+	}
+
+
+	case EGameDifficulty::Normal:
+	{
+		RequiredScore = 8;
+		break;
+	}
+
+
+	case EGameDifficulty::Hard:
+	{
+		RequiredScore = 12;
+		break;
+	}
+
+
+	default:
+	{
+		SelectedDifficulty = EGameDifficulty::Normal;
+		RequiredScore = 8;
+		break;
+	}
+	}
+
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("Difficolta configurata. Punteggio richiesto: %d"),
+		RequiredScore
+	);
 }
 
 

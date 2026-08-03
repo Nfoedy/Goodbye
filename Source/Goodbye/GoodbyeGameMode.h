@@ -5,6 +5,18 @@
 #include "TimerManager.h"
 #include "GoodbyeGameMode.generated.h"
 
+
+// Enum per la difficoltà
+UENUM(BlueprintType)
+enum class EGameDifficulty : uint8
+{
+	Easy	UMETA(DisplayName = "Easy"),
+	Normal	UMETA(DisplayName = "Normal"),
+	Hard	UMETA(DisplayName = "Hard")
+};
+
+
+
 /**
  *  Goodbye Game Mode
  */
@@ -34,6 +46,15 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Game|Timer")
 	int32 RemainingTimeSeconds = 0;
 
+	// Difficoltà selezionata per la partita.
+	UPROPERTY(EditDefaultsOnly,	BlueprintReadOnly,Category = "Game|Difficulty")
+	EGameDifficulty SelectedDifficulty = EGameDifficulty::Normal;
+
+
+	// Punteggio necessario per vincere la partita.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Game|Difficulty")
+	int32 RequiredScore = 8;
+
 private:
 
 	// Avvia il countdown della partita
@@ -50,6 +71,10 @@ private:
 
 	// Timer che aggiorna il countdown ogni secondo.
 	FTimerHandle MatchTimerHandle;
+
+
+	// Configura il punteggio richiesto in base alla difficoltà
+	void ConfigureDifficulty();
 };
 
 
