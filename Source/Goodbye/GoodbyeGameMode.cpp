@@ -185,68 +185,87 @@ void AGoodbyeGameMode::UpdateMatchTimer()
 // Scadenza del tempo
 void AGoodbyeGameMode::HandleTimeExpired()
 {
+	FinishMatch(
+		EMatchResult::Defeat
+	);
+}
+
+
+
+// Termine della partita
+bool AGoodbyeGameMode::TryCompleteMatch()
+{
+	// La partita è già terminata.
+	if (bMatchFinished)
+	{
+		return false;
+	}
+
+
+	// Il timer è già arrivato a zero.
+	if (RemainingTimeSeconds <= 0)
+	{
+		return false;
+	}
+
+
+	const bool bHasRequiredScore = CurrentScore >= RequiredScore;
+
+
+	const EMatchResult Result =	bHasRequiredScore ? EMatchResult::Victory :	EMatchResult::Defeat;
+
+
+	FinishMatch(Result);
+
+	// True significa che la FinishZone ha concluso la partita,
+	// indipendentemente dal fatto che sia vittoria o sconfitta.
+	return true;
+}
+
+
+// Fine del gioco
+void AGoodbyeGameMode::FinishMatch(EMatchResult Result)
+{
+	// Protezione contro chiamate multiple
 	if (bMatchFinished)
 	{
 		return;
 	}
 
-	GetWorldTimerManager().ClearTimer(
-		MatchTimerHandle
-	);
-
 	bMatchFinished = true;
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"SCONFITTA! Tempo terminato. "
-			"Punteggio finale: %d/%d"
-		),
-		CurrentScore,
-		RequiredScore
-	);
-}
+	// Il countdown non deve continuare dopo la conclusione della partita
+	GetWorldTimerManager().ClearTimer(MatchTimerHandle);
 
-// Termine della partita
-bool AGoodbyeGameMode::TryCompleteMatch()
-{
-	// Impedisce di terminare la partita più volte
-	if (bMatchFinished) return false;
 
-	// Non si può vincere dopo lo scadere del tempo
-	if (RemainingTimeSeconds <= 0) return false;
-
-	// Il cargo è arrivato all'uscita, ma non contiene ancora abbastanza punti
-	if (CurrentScore < RequiredScore)
+	if (Result == EMatchResult::Victory)
 	{
 		UE_LOG(
 			LogTemp,
 			Display,
 			TEXT(
-				"Uscita raggiunta, ma il punteggio non basta: %d/%d"
+				"VITTORIA | Punteggio: %d/%d | Tempo rimasto: %d"
 			),
 			CurrentScore,
-			RequiredScore
+			RequiredScore,
+			RemainingTimeSeconds
 		);
-
-		return false;
+	}
+	else
+	{
+		UE_LOG(
+			LogTemp,
+			Display,
+			TEXT(
+				"SCONFITTA | Punteggio: %d/%d | Tempo rimasto: %d"
+			),
+			CurrentScore,
+			RequiredScore,
+			RemainingTimeSeconds
+		);
 	}
 
-	GetWorldTimerManager().ClearTimer(MatchTimerHandle);
 
-	bMatchFinished = true;
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"VITTORIA! Uscita raggiunta con punteggio %d/%d e %d secondi rimanenti"
-		),
-		CurrentScore,
-		RequiredScore,
-		RemainingTimeSeconds
-	);
-
-	return true;
+	// Comunica il risultato ai Blueprint.
+	OnMatchFinished.Broadcast(Result);
 }

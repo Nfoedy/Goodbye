@@ -19,7 +19,17 @@ enum class EGameDifficulty : uint8
 };
 
 
+// Risultati conclusivi della partita.
+UENUM(BlueprintType)
+enum class EMatchResult : uint8
+{
+	Victory	UMETA(DisplayName = "Victory"),
+	Defeat	UMETA(DisplayName = "Defeat")
+};
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMatchTimeChangedSignature, int32, NewRemainingTimeSeconds);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMatchFinishedSignature, EMatchResult, MatchResult);
 
 
 
@@ -44,6 +54,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game|Timer")
 	FMatchTimeChangedSignature OnMatchTimeChanged;
 
+	// Evento richiamato una sola volta quando termina la partita
+	UPROPERTY(BlueprintAssignable, Category = "Game|Result")
+	FMatchFinishedSignature OnMatchFinished;
 
 	// Restituisce il tempo rimanente in secondi
 	UFUNCTION(BlueprintPure, Category = "Game|Timer")
@@ -107,6 +120,8 @@ private:
 	// Gestisce la scadenza del tempo
 	void HandleTimeExpired();
 
+	// Conclude definitivamente la partita con il risultato indicato
+	void FinishMatch(EMatchResult Result);
 
 	// Timer che aggiorna il countdown ogni secondo.
 	FTimerHandle MatchTimerHandle;
