@@ -179,40 +179,68 @@ void AGoodbyeGameMode::UpdateMatchTimer()
 // Scadenza del tempo
 void AGoodbyeGameMode::HandleTimeExpired()
 {
-	// Ferma definitivamente il countdown
-	GetWorldTimerManager().ClearTimer(MatchTimerHandle);
-
-	const bool bHasWon = CurrentScore >= RequiredScore;
-
-	if (bHasWon)
+	if (bMatchFinished)
 	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT(
-				"VITTORIA! Punteggio finale: %d/%d"
-			),
-			CurrentScore,
-			RequiredScore
-		);
+		return;
 	}
-	else
-	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT(
-				"SCONFITTA! Punteggio finale: %d/%d"
-			),
-			CurrentScore,
-			RequiredScore
-		);
-	}
+
+	GetWorldTimerManager().ClearTimer(
+		MatchTimerHandle
+	);
+
+	bMatchFinished = true;
 
 	UE_LOG(
 		LogTemp,
 		Display,
-		TEXT("Tempo terminato!")
+		TEXT(
+			"SCONFITTA! Tempo terminato. "
+			"Punteggio finale: %d/%d"
+		),
+		CurrentScore,
+		RequiredScore
+	);
+}
+
+// Termine della partita
+bool AGoodbyeGameMode::TryCompleteMatch()
+{
+	// Impedisce di terminare la partita più volte
+	if (bMatchFinished) return false;
+
+	// Non si può vincere dopo lo scadere del tempo
+	if (RemainingTimeSeconds <= 0) return false;
+
+	// Il cargo è arrivato all'uscita, ma non contiene ancora abbastanza punti
+	if (CurrentScore < RequiredScore)
+	{
+		UE_LOG(
+			LogTemp,
+			Display,
+			TEXT(
+				"Uscita raggiunta, ma il punteggio non basta: %d/%d"
+			),
+			CurrentScore,
+			RequiredScore
+		);
+
+		return false;
+	}
+
+	GetWorldTimerManager().ClearTimer(MatchTimerHandle);
+
+	bMatchFinished = true;
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT(
+			"VITTORIA! Uscita raggiunta con punteggio %d/%d e %d secondi rimanenti"
+		),
+		CurrentScore,
+		RequiredScore,
+		RemainingTimeSeconds
 	);
 
+	return true;
 }

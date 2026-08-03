@@ -34,6 +34,9 @@ public:
 	// Costruttore
 	AGoodbyeGameMode();
 
+	// Prova a completare la partita quando il cargo raggiunge l'uscita
+	bool TryCompleteMatch();
+
 
 protected:
 
@@ -85,6 +88,9 @@ private:
 
 	// Timer che aggiorna il countdown ogni secondo.
 	FTimerHandle MatchTimerHandle;
+
+	// Indica che la partita è già terminata
+	bool bMatchFinished = false;
 
 
 	// Configura il punteggio richiesto in base alla difficoltà
