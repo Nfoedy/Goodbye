@@ -72,6 +72,13 @@ public:
 		return RequiredScore;
 	}
 
+	// Indica se il punteggio necessario per vincere è stato raggiunto
+	UFUNCTION(BlueprintPure, Category = "Game|Result")
+	bool HasReachedRequiredScore() const
+	{
+		return CurrentScore >= RequiredScore;
+	}
+
 
 protected:
 

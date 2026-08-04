@@ -7,6 +7,9 @@
 
 class UBoxComponent;
 class UPrimitiveComponent;
+class UArrowComponent;
+class UBoxComponent;
+class UPrimitiveComponent;
 
 struct FHitResult;
 
@@ -32,12 +35,19 @@ public:
 	// Costruttore.
 	AFinishZone();
 
+	// Restituisce la direzione verso cui il cargo deve proseguire durante la cinematica
+	FVector GetCinematicForwardDirection() const;
+
 
 protected:
 
 	// Volume che rileva l'ingresso del cargo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Finish Zone|Components")
 	TObjectPtr<UBoxComponent> FinishBox = nullptr;
+
+	// Indica la direzione che il cargo dovrà seguire dopo aver ottenuto la vittoria
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Finish Zone|Cinematic")
+	TObjectPtr<UArrowComponent> CinematicDirection = nullptr;
 
 
 private:

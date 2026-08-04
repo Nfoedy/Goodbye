@@ -3,6 +3,7 @@
 #include "CargoTruckPawn.h"
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ArrowComponent.h"
 #include "GoodbyeGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -18,6 +19,15 @@ AFinishZone::AFinishZone()
 	FinishBox =	CreateDefaultSubobject<UBoxComponent>(TEXT("FinishBox"));
 
 	SetRootComponent(FinishBox);
+
+	// Crea il riferimento visivo della direzione cinematografica
+	CinematicDirection = CreateDefaultSubobject<UArrowComponent>(TEXT("CinematicDirection"));
+
+	CinematicDirection->SetupAttachment(FinishBox);
+
+	// Inizialmente punta nella stessa direzione della Finish Zone
+	CinematicDirection->SetRelativeLocation(FVector::ZeroVector);
+	CinematicDirection->SetRelativeRotation(FRotator::ZeroRotator);
 
 
 	// Dimensione iniziale modificabile nel Blueprint
@@ -40,6 +50,17 @@ AFinishZone::AFinishZone()
 
 
 	FinishBox->OnComponentBeginOverlap.AddDynamic(this, &AFinishZone::HandleFinishZoneBeginOverlap);
+}
+
+// Getter della direzione della cinematica
+FVector AFinishZone::GetCinematicForwardDirection() const
+{
+	if (!IsValid(CinematicDirection))
+	{
+		return GetActorForwardVector();
+	}
+
+	return CinematicDirection->GetForwardVector();
 }
 
 
@@ -93,6 +114,9 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 		return;
 	}
 
+	// Salvo la condizione che il player ha vinto
+	const bool bWillBeVictory = GoodbyeGameMode->HasReachedRequiredScore();
+
 
 	// Il GameMode verifica tempo, punteggio e stato conclusivo della partita.
 	const bool bMatchCompleted = GoodbyeGameMode->TryCompleteMatch();
@@ -107,5 +131,10 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 				"Finish Zone raggiunta, ma la partita non può ancora terminare"
 			)
 		);
+	}
+
+	if (bWillBeVictory)
+	{
+		CargoTruck->StartVictoryAutoDrive(GetCinematicForwardDirection());
 	}
 }

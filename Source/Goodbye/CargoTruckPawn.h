@@ -46,6 +46,10 @@ public:
 	bool ExitVehicle();
 
 
+	// Avvia la guida automatica usata durante la cinematica di vittoria
+	void StartVictoryAutoDrive(const FVector& InDirection);
+
+
 	// Indica se il Character può entrare nel camion.
 	UFUNCTION(BlueprintPure, Category = "Vehicle|Interaction")
 	bool CanEnterVehicle() const
@@ -65,6 +69,9 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+	// Aggiorna la guida automatica durante la vittoria.
+	virtual void Tick(float DeltaTime) override;
 
 
 	// Child Actor che contiene BP_CargoZone.
@@ -218,6 +225,10 @@ private:
 	FTimerHandle AutoParkTimerHandle;
 
 
+	// Aggiorna accelerazione e sterzo automatici
+	void UpdateVictoryAutoDrive(float DeltaTime);
+
+
 	// Richiamata quando un Actor entra nella zona di interazione della portiera.
 	UFUNCTION()
 	void HandleDriverZoneBeginOverlap(
@@ -239,4 +250,32 @@ private:
 		UPrimitiveComponent* OtherComponent,
 		int32 OtherBodyIndex
 	);
+
+
+	// Accelerazione applicata durante la cinematica.
+	UPROPERTY(EditDefaultsOnly,	Category = "Vehicle|Victory", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float VictoryThrottleInput = 0.25f;
+
+
+	// Differenza angolare necessaria per applicare sterzo completo
+	UPROPERTY(EditDefaultsOnly,	Category = "Vehicle|Victory", meta = (ClampMin = "1.0"))
+	float VictoryFullSteeringAngle = 35.0f;
+
+
+	// Velocità con cui lo sterzo automatico cambia valore
+	UPROPERTY(EditDefaultsOnly, Category = "Vehicle|Victory", meta = (ClampMin = "0.1"))
+	float VictorySteeringInterpolationSpeed = 2.5f;
+
+
+	// Indica che il cargo sta avanzando automaticamente.
+	bool bVictoryAutoDrive = false;
+
+
+	// Direzione mondiale indicata dalla FinishZone
+	FVector VictoryDriveDirection = FVector::ForwardVector;
+
+
+	// Valore di sterzo automatico attualmente applicato
+	float CurrentVictorySteeringInput = 0.0f;
+
 };

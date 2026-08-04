@@ -21,8 +21,9 @@
 // Costruttore
 ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	// Non serve un Tick personalizzato per ingresso, uscita e rilevamento del Character
-	PrimaryActorTick.bCanEverTick = false;
+	// Il Tick viene usato solamente durante la guida automatica finale
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	// AWheeledVehiclePawn possiede già la Skeletal Mesh principale.
 	USkeletalMeshComponent* VehicleMesh = GetMesh();
@@ -170,6 +171,20 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 }
 
 
+// Tick
+void ACargoTruckPawn::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!bVictoryAutoDrive)
+	{
+		return;
+	}
+
+	UpdateVictoryAutoDrive(DeltaTime);
+}
+
+
 // Attiva/ disattiva della simulazione fisica
 void ACargoTruckPawn::SetVehicleSimulationEnabled(bool bEnabled)
 {
@@ -217,6 +232,111 @@ void ACargoTruckPawn::SetVehicleSimulationEnabled(bool bEnabled)
 	VehicleMesh->PutAllRigidBodiesToSleep();
 	VehicleMesh->SetSimulatePhysics(false);
 }
+
+// Auto Drive dopo la vittoria
+void ACargoTruckPawn::StartVictoryAutoDrive(const FVector& InDirection)
+{
+	// Ignora l'altezza: il cargo deve allinearsi solamente sul piano orizzontale
+	FVector FlatDirection(InDirection.X, InDirection.Y,	0.0f);
+
+	FlatDirection = FlatDirection.GetSafeNormal();
+
+
+	// Usa la direzione attuale del camion come fallback.
+	if (FlatDirection.IsNearlyZero())
+	{
+		FlatDirection = GetActorForwardVector().GetSafeNormal2D();
+	}
+
+
+	VictoryDriveDirection = FlatDirection;
+
+	bVictoryAutoDrive = true;
+	CurrentVictorySteeringInput = 0.0f;
+
+
+	// Evita che il sistema di parcheggio possa bloccare il cargo.
+	StopAutoParkCheck();
+
+	// Garantisce che la simulazione Chaos sia attiva.
+	SetVehicleSimulationEnabled(true);
+
+
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (IsValid(VehicleMovement))
+	{
+		VehicleMovement->SetBrakeInput(0.0f);
+		VehicleMovement->SetSteeringInput(0.0f);
+		VehicleMovement->SetThrottleInput(VictoryThrottleInput);
+	}
+
+
+	// Il Tick viene attivato solamente da questo momento.
+	SetActorTickEnabled(true);
+
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT(
+			"Guida automatica di vittoria avviata. "
+			"Direzione: %s"
+		),
+		*VictoryDriveDirection.ToString()
+	);
+}
+
+// Aggiorna l'Auto Drive
+void ACargoTruckPawn::UpdateVictoryAutoDrive(float DeltaTime)
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+
+	// Rotazione attuale del cargo
+	const float CurrentYaw = GetActorRotation().Yaw;
+
+
+	// Rotazione indicata dalla freccia della FinishZone
+	const float TargetYaw = VictoryDriveDirection.Rotation().Yaw;
+
+
+	// Differenza più breve tra i due angoli
+	const float YawDifference =	FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
+
+
+	/*
+	 * Esempio:
+	 *
+	 * differenza  0°  → sterzo 0
+	 * differenza 17°  → circa mezzo sterzo
+	 * differenza 35°  → sterzo completo
+	 */
+	const float DesiredSteeringInput = FMath::Clamp(YawDifference / VictoryFullSteeringAngle, -1.0f, 1.0f);
+
+
+	// Evita cambi bruschi dello sterzo.
+	CurrentVictorySteeringInput = 
+		FMath::FInterpTo(
+			CurrentVictorySteeringInput,
+			DesiredSteeringInput,
+			DeltaTime,
+			VictorySteeringInterpolationSpeed
+		);
+
+
+	VehicleMovement->SetBrakeInput(0.0f);
+
+	VehicleMovement->SetThrottleInput(VictoryThrottleInput);
+
+	VehicleMovement->SetSteeringInput(CurrentVictorySteeringInput);
+}
+
 
 
 // Begin Play
@@ -347,6 +467,11 @@ void ACargoTruckPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 void ACargoTruckPawn::HandleInteract()
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	if (!bIsDriving)
 	{
 		return;
@@ -645,6 +770,11 @@ bool ACargoTruckPawn::ExitVehicle()
 // Accellerazione 
 void ACargoTruckPawn::HandleThrottle(const FInputActionValue& Value)
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
@@ -660,6 +790,11 @@ void ACargoTruckPawn::HandleThrottle(const FInputActionValue& Value)
 // Decellerazione quando non viene premuto l'accelleratore
 void ACargoTruckPawn::StopThrottle()
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
@@ -673,6 +808,11 @@ void ACargoTruckPawn::StopThrottle()
 // Freno
 void ACargoTruckPawn::HandleBrake(const FInputActionValue& Value)
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
@@ -688,6 +828,11 @@ void ACargoTruckPawn::HandleBrake(const FInputActionValue& Value)
 // Rilascio del freno
 void ACargoTruckPawn::StopBrake()
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
@@ -701,6 +846,11 @@ void ACargoTruckPawn::StopBrake()
 // Sterzo
 void ACargoTruckPawn::HandleSteering(const FInputActionValue& Value)
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
@@ -716,6 +866,11 @@ void ACargoTruckPawn::HandleSteering(const FInputActionValue& Value)
 
 void ACargoTruckPawn::StopSteering()
 {
+	if (bVictoryAutoDrive)
+	{
+		return;
+	}
+
 	UChaosWheeledVehicleMovementComponent* VehicleMovement = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
 
 	if (!IsValid(VehicleMovement))
