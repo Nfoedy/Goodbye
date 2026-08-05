@@ -206,26 +206,10 @@ void AMovableItem::ApplyImpactDamage(float DamageAmount)
 
 
 // Punteggio
+// Restituisce il punteggio configurato nel Blueprint
 int32 AMovableItem::GetItemScore() const
 {
-	// Converte la categoria di grandezza nel relativo punteggio.
-	switch (ItemSize)
-	{
-	case EMovableItemSize::Small:
-		return 1;
-
-	case EMovableItemSize::Medium:
-		return 2;
-
-	case EMovableItemSize::Large:
-		return 3;
-
-	case EMovableItemSize::VeryLarge:
-		return 4;
-
-	default:
-		return 1;
-	}
+	return FMath::Max(ItemScore, 0);
 }
 
 

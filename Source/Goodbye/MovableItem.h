@@ -146,6 +146,15 @@ protected:
 	)
 	EMovableItemSize ItemSize = EMovableItemSize::Small;
 
+	// Punteggio assegnato all'oggetto quando si trova nel cargo
+	UPROPERTY(
+		EditDefaultsOnly,
+		BlueprintReadOnly,
+		Category = "Movable Item|Score",
+		meta = (ClampMin = "0")
+	)
+	int32 ItemScore = 1;
+
 
 /* CONFIGURAZIONE DEGLI IMPATTI */
 protected:
