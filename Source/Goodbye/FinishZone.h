@@ -5,8 +5,7 @@
 #include "FinishZone.generated.h"
 
 
-class UBoxComponent;
-class UPrimitiveComponent;
+class ALevelSequenceActor;
 class UArrowComponent;
 class UBoxComponent;
 class UPrimitiveComponent;
@@ -50,6 +49,11 @@ protected:
 	TObjectPtr<UArrowComponent> CinematicDirection = nullptr;
 
 
+	// Level Sequence Actor utilizzato per riprodurre la cinematica di vittoria
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Finish Zone|Cinematic")
+	TObjectPtr<ALevelSequenceActor> VictorySequenceActor = nullptr;
+
+
 private:
 
 	// Richiamata quando un Actor entra nella Finish Zone.
@@ -62,4 +66,13 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult
 	);
+
+	// Avvia la Level Sequence e restituisce true se la riproduzione è partita
+	bool PlayVictorySequence();
+
+
+	// Gestisce la conclusione naturale della Level Sequence di vittoria
+	UFUNCTION()
+	void HandleVictorySequenceFinished();
+
 };

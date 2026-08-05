@@ -234,6 +234,9 @@ void AGoodbyeGameMode::FinishMatch(EMatchResult Result)
 
 	bMatchFinished = true;
 
+	// Salva il risultato definitivo della partita
+	FinalMatchResult = Result;
+
 	// Il countdown non deve continuare dopo la conclusione della partita
 	GetWorldTimerManager().ClearTimer(MatchTimerHandle);
 
@@ -266,6 +269,45 @@ void AGoodbyeGameMode::FinishMatch(EMatchResult Result)
 	}
 
 
-	// Comunica il risultato ai Blueprint.
-	OnMatchFinished.Broadcast(Result);
+	// La sconfitta non possiede una cinematica finale, quindi il risultato viene mostrato immediatamente
+	if (Result == EMatchResult::Defeat)
+	{
+		PresentMatchResult();
+	}
+}
+
+
+// Comunica una sola volta alla UI il risultato definitivo della partita
+void AGoodbyeGameMode::PresentMatchResult()
+{
+	// Non può essere mostrato un risultato se la partita non è ancora terminata
+	if (!bMatchFinished)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("GoodbyeGameMode: tentativo di mostrare il risultato prima della fine della partita")
+		);
+
+		return;
+	}
+
+
+	// Impedisce che la UI finale venga attivata più volte
+	if (bMatchResultPresented)
+	{
+		return;
+	}
+
+
+	bMatchResultPresented = true;
+
+	// Comunica il risultato definitivo ai Blueprint e alla UI
+	OnMatchFinished.Broadcast(FinalMatchResult);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("GoodbyeGameMode: risultato finale comunicato alla UI")
+	);
 }

@@ -19,7 +19,9 @@ public class Goodbye : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
-			"ChaosVehicles"
+			"ChaosVehicles",
+			"LevelSequence",
+			"MovieScene"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

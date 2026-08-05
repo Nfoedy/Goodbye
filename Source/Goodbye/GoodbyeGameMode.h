@@ -58,6 +58,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game|Result")
 	FMatchFinishedSignature OnMatchFinished;
 
+	// Comunica alla UI il risultato definitivo della partita
+	void PresentMatchResult();
+
 	// Restituisce il tempo rimanente in secondi
 	UFUNCTION(BlueprintPure, Category = "Game|Timer")
 	int32 GetRemainingTimeSeconds() const
@@ -135,6 +138,13 @@ private:
 
 	// Indica che la partita è già terminata
 	bool bMatchFinished = false;
+
+
+	// Risultato definitivo salvato quando termina la partita
+	EMatchResult FinalMatchResult = EMatchResult::Defeat;
+
+	// Evita che il risultato finale venga comunicato più volte
+	bool bMatchResultPresented = false;
 
 
 	// Configura il punteggio richiesto in base alla difficoltà
