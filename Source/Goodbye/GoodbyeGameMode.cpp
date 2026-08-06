@@ -1,6 +1,7 @@
 #include "GoodbyeGameMode.h"
 #include "CargoZone.h"
 #include "Kismet/GameplayStatics.h"
+#include "GoodbyeGameInstance.h"
 
 
 // Costruttore
@@ -14,6 +15,26 @@ AGoodbyeGameMode::AGoodbyeGameMode()
 void AGoodbyeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Recupera la difficoltà scelta nel Main Menu.
+	const UGoodbyeGameInstance* GoodbyeGameInstance = Cast<UGoodbyeGameInstance>(GetGameInstance());
+
+
+	if (IsValid(GoodbyeGameInstance))
+	{
+		SelectedDifficulty = GoodbyeGameInstance->GetSelectedDifficulty();
+	}
+	else
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT(
+				"GoodbyeGameMode: GoodbyeGameInstance non trovato. "
+				"Verrà utilizzata la difficoltà predefinita."
+			)
+		);
+	}
 
 	ConfigureDifficulty();
 	StartMatchTimer();

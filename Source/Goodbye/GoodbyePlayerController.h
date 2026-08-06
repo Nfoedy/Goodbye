@@ -6,6 +6,10 @@
 #include "GameFramework/PlayerController.h"
 #include "GoodbyePlayerController.generated.h"
 
+
+class UInputMappingContext;
+class UUserWidget;
+class UInputAction;
 class UInputMappingContext;
 class UUserWidget;
 
@@ -23,6 +27,21 @@ public:
 
 	/** Constructor */
 	AGoodbyePlayerController();
+
+
+	// Chiude il menu di pausa e ripristina il gameplay.
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void ResumeGame();
+
+
+	// Torna al livello del Main Menu.
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void ReturnToMainMenu();
+
+
+	// Abilita o disabilita l'apertura del menu di pausa.
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void SetPauseMenuEnabled(bool bEnabled);
 
 protected:
 
@@ -54,4 +73,36 @@ protected:
 
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
+
+	// Input Action utilizzata per aprire e chiudere il menu di pausa.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> PauseAction = nullptr;
+
+
+	// Classe del Widget utilizzato come menu di pausa.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Pause Menu")
+	TSubclassOf<UUserWidget> PauseMenuWidgetClass;
+
+
+	// Istanza attualmente utilizzata del menu di pausa.
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> PauseMenuWidget = nullptr;
+
+
+private:
+
+	// Gestisce la pressione dell'Input Action dedicata alla pausa.
+	void HandlePauseAction();
+
+
+	// Crea e apre il menu di pausa.
+	void OpenPauseMenu();
+
+
+	// Chiude il menu di pausa e ripristina il controllo del gioco.
+	void ClosePauseMenu();
+
+
+	// Indica se il giocatore può aprire il menu di pausa.
+	bool bPauseMenuEnabled = true;
 };

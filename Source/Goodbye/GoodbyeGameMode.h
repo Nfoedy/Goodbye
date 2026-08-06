@@ -3,20 +3,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "TimerManager.h"
+#include "GoodbyeTypes.h"
 #include "GoodbyeGameMode.generated.h"
 
 
 class ACargoZone;
 
-
-// Enum per la difficoltà
-UENUM(BlueprintType)
-enum class EGameDifficulty : uint8
-{
-	Easy	UMETA(DisplayName = "Easy"),
-	Normal	UMETA(DisplayName = "Normal"),
-	Hard	UMETA(DisplayName = "Hard")
-};
 
 
 // Risultati conclusivi della partita.
