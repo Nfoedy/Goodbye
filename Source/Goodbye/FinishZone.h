@@ -75,4 +75,8 @@ private:
 	UFUNCTION()
 	void HandleVictorySequenceFinished();
 
+
+	// Nasconde definitivamente le barre vita degli oggetti trasportabili.
+	void SuppressMovableItemHealthWidgets();
+
 };

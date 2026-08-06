@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
+#include "MovableItem.h"
 
 
 // Costruttore
@@ -174,6 +175,38 @@ void AFinishZone::HandleVictorySequenceFinished()
 
 
 
+// Nasconde definitivamente le barre vita degli oggetti trasportabili.
+void AFinishZone::SuppressMovableItemHealthWidgets()
+{
+	TArray<AActor*> MovableItemActors;
+
+
+	// Recupera tutti gli oggetti trasportabili presenti nel livello.
+	UGameplayStatics::GetAllActorsOfClass(
+		this,
+		AMovableItem::StaticClass(),
+		MovableItemActors
+	);
+
+
+	for (AActor* Actor : MovableItemActors)
+	{
+		AMovableItem* MovableItem =
+			Cast<AMovableItem>(Actor);
+
+
+		if (!IsValid(MovableItem))
+		{
+			continue;
+		}
+
+
+		MovableItem->SuppressHealthWidget();
+	}
+}
+
+
+
 // Ingresso nella Finish Zone
 void AFinishZone::HandleFinishZoneBeginOverlap(
 	UPrimitiveComponent* OverlappedComponent,
@@ -252,6 +285,10 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 	{
 		return;
 	}
+
+
+	// Nasconde le barre e impedisce che ricompaiano durante la cinematica finale.
+	SuppressMovableItemHealthWidgets();
 
 
 	// Avvia il movimento automatico del camion.

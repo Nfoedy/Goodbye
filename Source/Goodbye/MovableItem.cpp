@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/WidgetComponent.h"
+#include "TimerManager.h"
 
 
 // Costruttore 
@@ -144,8 +145,19 @@ void AMovableItem::HandleItemHit(UPrimitiveComponent* HitComponent, AActor* Othe
 	// Protegge il Clamp nel caso in cui i valori vengano configurati male nel Blueprint
 	const float SafeMaximumDamage =	FMath::Max(	MaximumDamagePerImpact, MinimumDamagePerImpact);
 
-	// Limita il danno tra il minimo e il massimo configurati.
-	const float Damage = FMath::Clamp(RawDamage, MinimumDamagePerImpact, SafeMaximumDamage);
+	// Limita il danno base tra il minimo e il massimo configurati.
+	const float BaseDamage = FMath::Clamp(RawDamage, MinimumDamagePerImpact, SafeMaximumDamage);
+
+	// Verifica se l'impatto è avvenuto contro un altro oggetto trasportabile
+	const bool bHitAnotherMovableItem = IsValid(Cast<AMovableItem>(OtherActor));
+
+	// Gli urti tra due MovableItem producono metà del danno normale
+	const float DamageMultiplier = bHitAnotherMovableItem ? ItemToItemDamageMultiplier : 1.0f;
+
+
+	// Applica il moltiplicatore dopo il Clamp,  così il danno finale è realmente dimezzato.
+	const float Damage = BaseDamage * DamageMultiplier;
+
 
 	// Applica il danno alla salute dell'oggetto.
 	ApplyImpactDamage(Damage);
@@ -157,15 +169,18 @@ void AMovableItem::HandleItemHit(UPrimitiveComponent* HitComponent, AActor* Othe
 			"%s ha colpito %s | "
 			"Massa: %.1f kg | "
 			"Severita: %.2f cm/s | "
+			"Moltiplicatore: %.2f | "
 			"Danno: %.2f"
 		),
 		*GetName(),
 		*GetNameSafe(OtherActor),
 		ObjectMassInKg,
 		ImpactSeverity,
+		DamageMultiplier,
 		Damage
 	);
 }
+
 
 // ApplyDamage
 void AMovableItem::ApplyImpactDamage(float DamageAmount)
@@ -179,10 +194,9 @@ void AMovableItem::ApplyImpactDamage(float DamageAmount)
 
 	UpdateHealthWidget();
 
-	if (IsValid(HealthWidgetComponent))
-	{
-		HealthWidgetComponent->SetVisibility(CurrentHealth < MaxHealth && CurrentHealth > 0.0f);
-	}
+
+	// Mostra la barra per tre secondi dall'ultimo impatto
+	ShowHealthWidgetTemporarily();
 
 	UE_LOG(
 		LogTemp,
@@ -202,6 +216,74 @@ void AMovableItem::ApplyImpactDamage(float DamageAmount)
 		DestroyItem();
 	}
 }
+
+
+// Mostra temporaneamente la barra e riavvia il timer di scomparsa
+void AMovableItem::ShowHealthWidgetTemporarily()
+{
+	if (bHealthWidgetSuppressed || bIsBroken ||	CurrentHealth <= 0.0f ||
+		!IsValid(HealthWidgetComponent) ||
+		!GetWorld()
+		)
+	{
+		return;
+	}
+
+
+	// Mostra la barra aggiornata.
+	HealthWidgetComponent->SetVisibility(true);
+
+
+	// Annulla il timer precedente, così ogni nuovo colpo
+	// fa ripartire il conteggio da zero.
+	GetWorldTimerManager().ClearTimer(
+		HealthWidgetVisibilityTimerHandle
+	);
+
+
+	// Nasconde la barra dopo il tempo configurato.
+	GetWorldTimerManager().SetTimer(
+		HealthWidgetVisibilityTimerHandle,
+		this,
+		&AMovableItem::HideHealthWidget,
+		HealthWidgetVisibleDuration,
+		false
+	);
+}
+
+
+// Nasconde la barra della vita.
+void AMovableItem::HideHealthWidget()
+{
+	if (!IsValid(HealthWidgetComponent))
+	{
+		return;
+	}
+
+
+	HealthWidgetComponent->SetVisibility(false);
+}
+
+
+// Nasconde la barra della vita e impedisce che ricompaia.
+void AMovableItem::SuppressHealthWidget()
+{
+	bHealthWidgetSuppressed = true;
+
+
+	// Il timer non deve più provare a modificare la barra.
+	if (GetWorld())
+	{
+		GetWorldTimerManager().ClearTimer(
+			HealthWidgetVisibilityTimerHandle
+		);
+	}
+
+
+	HideHealthWidget();
+}
+
+
 
 
 
@@ -224,12 +306,15 @@ void AMovableItem::DestroyItem()
 	bIsBroken = true;
 	CurrentHealth = 0.0f;
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("%s distrutto"),
-		*GetName()
-	);
+	// Ferma il timer e nasconde la barra prima di distruggere l'oggetto.
+	if (GetWorld())
+	{
+		GetWorldTimerManager().ClearTimer(
+			HealthWidgetVisibilityTimerHandle
+		);
+	}
+
+	HideHealthWidget();
 
 	if (IsValid(ItemMesh))
 	{

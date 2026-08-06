@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/TimerHandle.h"
 #include "GameFramework/Actor.h"
 #include "MovableItem.generated.h"
 
@@ -81,6 +82,9 @@ public:
 		return ItemMesh.Get();
 	}
 
+	// Nasconde la barra della vita e impedisce che ricompaia
+	void SuppressHealthWidget();
+
 
 	// Restituisce la salute corrente dell'oggetto
 	UFUNCTION(BlueprintPure, Category = "Movable Item|Health")
@@ -88,6 +92,10 @@ public:
 	{
 		return CurrentHealth;
 	}
+
+	// Tempo durante il quale la barra rimane visibile dopo un impatto
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movable Item|Health", meta = (ClampMin = "0.1", Units = "s"))
+	float HealthWidgetVisibleDuration = 3.0f;
 
 
 	// Restituisce la salute massima dell'oggetto
@@ -171,8 +179,7 @@ protected:
 	float MinimumImpactSeverity = 250.0f;
 
 
-	// Tempo minimo tra due impatti significativi
-	// Evita che una singola caduta produca molti eventi consecutivi
+	// Tempo minimo tra due impatti significativi. Evita che una singola caduta produca molti eventi consecutivi
 	UPROPERTY(
 		EditDefaultsOnly,
 		BlueprintReadOnly,
@@ -180,6 +187,16 @@ protected:
 		meta = (ClampMin = "0.0", Units = "s")
 	)
 	float ImpactCooldown = 0.35f;
+
+
+	// Moltiplicatore applicato quando l'urto avviene contro un altro MovableItem.
+	UPROPERTY(
+		EditDefaultsOnly,
+		BlueprintReadOnly,
+		Category = "Movable Item|Damage",
+		meta = (ClampMin = "0.0", ClampMax = "1.0")
+	)
+	float ItemToItemDamageMultiplier = 0.5f;
 
 
 /* CONFIGURAZIONE HEALTH */
@@ -251,6 +268,13 @@ private:
 	// ed è già in fase di distruzione
 	bool bIsBroken = false;
 
+	// Timer che nasconde la barra dopo l'ultimo impatto.
+	FTimerHandle HealthWidgetVisibilityTimerHandle;
+
+
+	// Impedisce alla barra di ricomparire durante la cinematica finale.
+	bool bHealthWidgetSuppressed = false;
+
 
 /* EVENTI FISICI */
 private:
@@ -278,4 +302,10 @@ private:
 
 	// Aggiorna il Widget Health
 	void UpdateHealthWidget();
+
+	// Mostra temporaneamente la barra e riavvia il timer di scomparsa
+	void ShowHealthWidgetTemporarily();
+
+	// Nasconde la barra della vita
+	void HideHealthWidget();
 };
