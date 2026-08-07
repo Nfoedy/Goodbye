@@ -46,6 +46,10 @@ public:
 	bool ExitVehicle();
 
 
+	// Aggiorna la coppia del motore utilizzando il moltiplicatore corrente
+	void RefreshEnginePower();
+
+
 	// Avvia la guida automatica usata durante la cinematica di vittoria
 	void StartVictoryAutoDrive(const FVector& InDirection);
 
@@ -64,6 +68,7 @@ public:
 	{
 		return bIsDriving;
 	}
+
 
 
 protected:
@@ -250,6 +255,16 @@ private:
 		UPrimitiveComponent* OtherComponent,
 		int32 OtherBodyIndex
 	);
+
+
+	// Moltiplicatore della potenza del motore modificabile tramite Reflection
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Power Up", meta = (AllowPrivateAccess = "true", ClampMin = "0.1"))
+	float EnginePowerMultiplier = 1.0f;
+
+
+	// Coppia massima base del motore, espressa in Nm
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Engine", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float BaseMaxEngineTorque = 500.0f;
 
 
 	// Accelerazione applicata durante la cinematica.

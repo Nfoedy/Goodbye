@@ -71,7 +71,7 @@ ACargoTruckPawn::ACargoTruckPawn(const FObjectInitializer& ObjectInitializer) : 
 
 
 		// Motore
-		VehicleMovement->EngineSetup.MaxTorque = 500.0f;
+		VehicleMovement->EngineSetup.MaxTorque = BaseMaxEngineTorque;
 		VehicleMovement->EngineSetup.MaxRPM = 4500.0f;
 		VehicleMovement->EngineSetup.EngineIdleRPM = 800.0f;
 		VehicleMovement->EngineSetup.EngineBrakeEffect = 0.1f;
@@ -359,10 +359,46 @@ void ACargoTruckPawn::BeginPlay()
 	// Il guidatore rimane invisibile fino all'ingresso del giocatore nel cargo.
 	if (IsValid(DriverMesh))
 	{
-		DriverMesh->SetVisibility(false,true);
-		DriverMesh->SetHiddenInGame(true,true);
+		DriverMesh->SetVisibility(false, true);
+		DriverMesh->SetHiddenInGame(true, true);
 	}
+
+	// Applica i valori iniziali della configurazione del motore.
+	RefreshEnginePower();
+
 }
+
+
+// Aggiorna la coppia del motore utilizzando il moltiplicatore corrente.
+void ACargoTruckPawn::RefreshEnginePower()
+{
+	UChaosWheeledVehicleMovementComponent* VehicleMovement =
+		Cast<UChaosWheeledVehicleMovementComponent>(
+			GetVehicleMovementComponent()
+		);
+
+	if (!IsValid(VehicleMovement))
+	{
+		return;
+	}
+
+	const float UpdatedMaxTorque =
+		BaseMaxEngineTorque * EnginePowerMultiplier;
+
+	// Applica la nuova coppia massima al motore Chaos.
+	VehicleMovement->SetMaxEngineTorque(UpdatedMaxTorque);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT(
+			"Cargo Power | Multiplier: %.2f | Max Torque: %.2f Nm"
+		),
+		EnginePowerMultiplier,
+		UpdatedMaxTorque
+	);
+}
+
 
 
 // Input
