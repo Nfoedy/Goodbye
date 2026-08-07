@@ -257,7 +257,11 @@ private:
 	);
 
 
-	// Moltiplicatore della potenza del motore modificabile tramite Reflection
+	// REFLECTION
+	// Moltiplicatore usato per modificare la potenza del motore.
+	// Questa costituisce il target del CargoSpeedPowerUp, viene individuata a runtime tramite il nome "EnginePowerMultiplier".
+	// Val iniziale: 1.0
+	// Val dopo PowerUp: 1.15 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Power Up", meta = (AllowPrivateAccess = "true", ClampMin = "0.1"))
 	float EnginePowerMultiplier = 1.0f;
 

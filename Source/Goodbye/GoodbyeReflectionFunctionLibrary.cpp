@@ -41,12 +41,10 @@ bool UGoodbyeReflectionFunctionLibrary::MultiplyFloatProperty(UObject* TargetObj
 	// Recupera genericamente la proprietà tramite Reflection
 	FProperty* Property = RetrieveProperty(TargetObject, PropertyName);
 
-
 	if (Property == nullptr)
 	{
 		return false;
 	}
-
 
 	// Verifica che la proprietà trovata sia realmente un float
 	FFloatProperty* FloatProperty = CastField<FFloatProperty>(Property);
