@@ -10,6 +10,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
+#include "Kismet/GameplayStatics.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "CargoTruckFrontWheel.h"
 #include "CargoTruckRearWheel.h"
@@ -682,6 +683,12 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 	// Il PlayerController passa dal Character al cargo
 	PlayerController->Possess(this);
 
+	// Riproduce l'accensione del motore quando il Player entra nel Cargo
+	if (IsValid(EngineStartSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this,	EngineStartSound, GetActorLocation());
+	}
+
 	// Disattiva il mirino durante la guida
 	DriverCharacter->SetAimDotVisibility(false);
 
@@ -798,6 +805,12 @@ bool ACargoTruckPawn::ExitVehicle()
 
 	// Il cargo continua liberamente per inerzia. Verrà parcheggiato soltanto quando sarà fermo.
 	StartAutoParkCheck();
+
+	// Riproduce lo spegnimento del motore quando il Player esce dal Cargo.
+	if (IsValid(EngineStopSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this,	EngineStopSound, GetActorLocation());
+	}
 
 	return true;
 }

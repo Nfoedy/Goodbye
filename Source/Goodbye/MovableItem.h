@@ -9,6 +9,7 @@
 class UStaticMeshComponent;
 class UPrimitiveComponent;
 class UWidgetComponent;
+class USoundBase;
 
 struct FHitResult;
 
@@ -274,6 +275,12 @@ private:
 
 	// Impedisce alla barra di ricomparire durante la cinematica finale.
 	bool bHealthWidgetSuppressed = false;
+
+
+	// Suono riprodotto quando l'oggetto viene distrutto.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movable Item|Audio",	meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> DestroySound = nullptr;
+
 
 
 /* EVENTI FISICI */

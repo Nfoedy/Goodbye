@@ -11,6 +11,7 @@
 #include "MovableItem.h"
 #include "CollisionQueryParams.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 #include "CargoTruckPawn.h"
 #include "Components/SceneComponent.h"
 
@@ -380,6 +381,14 @@ void AGoodbyeCharacter::StopGrab(const FInputActionValue& Value)
 		return;
 	}
 
+	// Riproduce il suono soltanto se esiste realmente un oggetto afferrato
+	if (IsValid(GrabbedComponent) && IsValid(DropSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DropSound, GrabbedComponent->GetComponentLocation());
+	}
+
+	PhysicsHandle->ReleaseComponent();
+
 	PhysicsHandle->ReleaseComponent();
 
 	ResetGrabWeight();
@@ -448,6 +457,12 @@ void AGoodbyeCharacter::CompleteGrab()
 
 	// Soltanto adesso viene eseguita la presa fisica.
 	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabWorldPoint, GrabHoldPoint->GetComponentRotation());
+
+	// Riproduce il suono soltanto quando la presa viene completata.
+	if (IsValid(GrabSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, GrabSound, GrabWorldPoint);
+	}
 
 	PendingGrabComponent = nullptr;
 	PendingLocalGrabPoint = FVector::ZeroVector;

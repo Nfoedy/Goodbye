@@ -2,6 +2,7 @@
 #include "Engine/World.h"
 #include "Components/StaticMeshComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/ProgressBar.h"
 #include "Components/WidgetComponent.h"
 #include "TimerManager.h"
@@ -325,6 +326,14 @@ void AMovableItem::DestroyItem()
 
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+
+
+	// Riproduce il suono di distruzione nella posizione dell'oggetto
+	if (IsValid(DestroySound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this,	DestroySound, GetActorLocation());
+	}
+
 
 	Destroy();
 }

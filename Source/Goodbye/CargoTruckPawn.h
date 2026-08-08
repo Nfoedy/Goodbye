@@ -17,6 +17,7 @@ class UPrimitiveComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
+class USoundBase;
 
 struct FHitResult;
 struct FInputActionValue;
@@ -255,6 +256,15 @@ private:
 		UPrimitiveComponent* OtherComponent,
 		int32 OtherBodyIndex
 	);
+
+	// Suono riprodotto quando il giocatore accende il Cargo
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Audio",	meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> EngineStartSound = nullptr;
+
+
+	// Suono riprodotto quando il giocatore spegne il Cargo
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> EngineStopSound = nullptr;
 
 
 	// REFLECTION

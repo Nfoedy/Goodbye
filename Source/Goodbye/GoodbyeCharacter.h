@@ -13,6 +13,7 @@ class UPhysicsHandleComponent;
 class UPrimitiveComponent;
 class ACargoTruckPawn;
 class USceneComponent;
+class USoundBase;
 
 struct FInputActionValue;
 
@@ -90,6 +91,15 @@ private:
 
 	// Gestisce la pressione del comando di interazione
 	void HandleInteract();
+
+	// Suono riprodotto quando un oggetto viene realmente afferrato.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> GrabSound = nullptr;
+
+
+	// Suono riprodotto quando un oggetto viene rilasciato.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> DropSound = nullptr;
 
 
 
