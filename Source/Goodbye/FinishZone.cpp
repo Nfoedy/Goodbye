@@ -74,12 +74,6 @@ bool AFinishZone::PlayVictorySequence()
 	// Verifica che sia stato assegnato un Level Sequence Actor
 	if (!IsValid(VictorySequenceActor))
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("Finish Zone: VictorySequenceActor non assegnato")
-		);
-
 		return false;
 	}
 
@@ -90,12 +84,6 @@ bool AFinishZone::PlayVictorySequence()
 
 	if (!IsValid(SequencePlayer))
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("Finish Zone: Sequence Player non disponibile")
-		);
-
 		return false;
 	}
 
@@ -117,14 +105,6 @@ bool AFinishZone::PlayVictorySequence()
 	// Avvia la Sequence dalla posizione corrente
 	SequencePlayer->Play();
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("Finish Zone: cinematica di vittoria avviata")
-	);
-
-
 	return true;
 }
 
@@ -133,12 +113,6 @@ bool AFinishZone::PlayVictorySequence()
 // Gestisce la conclusione naturale della Level Sequence di vittoria.
 void AFinishZone::HandleVictorySequenceFinished()
 {
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("Finish Zone: cinematica di vittoria terminata")
-	);
-
 
 	// Recupera il GameMode utilizzato dalla partita
 	AGoodbyeGameMode* GoodbyeGameMode = Cast<AGoodbyeGameMode>(UGameplayStatics::GetGameMode(this));
@@ -146,12 +120,6 @@ void AFinishZone::HandleVictorySequenceFinished()
 
 	if (!IsValid(GoodbyeGameMode))
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("Finish Zone: GoodbyeGameMode non trovato al termine della cinematica")
-		);
-
 		return;
 	}
 
@@ -229,14 +197,6 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 	// Un cargo vuoto arrivato per inerzia non può completare la partita.
 	if (!CargoTruck->IsDriving())
 	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT(
-				"Finish Zone: camion rilevato senza guidatore"
-			)
-		);
-
 		return;
 	}
 
@@ -246,14 +206,6 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 
 	if (!IsValid(GoodbyeGameMode))
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"Finish Zone: GoodbyeGameMode non trovato"
-			)
-		);
-
 		return;
 	}
 
@@ -267,14 +219,6 @@ void AFinishZone::HandleFinishZoneBeginOverlap(
 
 	if (!bMatchCompleted)
 	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT(
-				"Finish Zone raggiunta, ma la partita non può ancora terminare"
-			)
-		);
-
 		return;
 	}
 

@@ -3,8 +3,7 @@
 
 UCargoTruckRearWheel::UCargoTruckRearWheel()
 {
-	// Manteniamo inizialmente le stesse dimensioni
-	// delle ruote anteriori.
+	// Manteniamo inizialmente le stesse dimensioni delle ruote anteriori.
 	WheelRadius = 55.0f;
 	WheelWidth = 30.0f;
 	WheelMass = 30.0f;

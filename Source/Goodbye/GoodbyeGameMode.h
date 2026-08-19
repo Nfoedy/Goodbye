@@ -36,9 +36,6 @@ class AGoodbyeGameMode : public AGameModeBase
 
 public:
 
-	// Costruttore
-	AGoodbyeGameMode();
-
 	// Prova a completare la partita quando il cargo raggiunge l'uscita
 	bool TryCompleteMatch();
 

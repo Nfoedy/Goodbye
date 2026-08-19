@@ -36,7 +36,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 
-	// Aggiorna la rotazione e la fluttuazione della moneta
+	// Aggiorna la fluttuazione verticale della moneta
 	virtual void Tick(float DeltaTime) override;
 
 
@@ -68,11 +68,6 @@ private:
 	// 1.15 corrisponde ad un incremento del 15%.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Power Up|Reflection", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float Multiplier = 1.15f;
-
-
-	// Velocità di rotazione della moneta in gradi al secondo
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Power Up|Animation", meta = (AllowPrivateAccess = "true"))
-	float RotationSpeed = 120.0f;
 
 
 	// Altezza massima della fluttuazione rispetto alla posizione iniziale

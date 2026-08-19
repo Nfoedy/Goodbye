@@ -85,19 +85,6 @@ void ACargoZone::HandleCargoBeginOverlap(
 	// Aggiorna il punteggio totale
 	RecalculateScore();
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"Cargo Zone | Entrato: %s | "
-			"Oggetti: %d | "
-			"Punteggio: %d"
-		),
-		*GetNameSafe(MovableItem),
-		LoadedItems.Num(),
-		CurrentScore
-	);
 }
 
 
@@ -144,19 +131,6 @@ void ACargoZone::HandleCargoEndOverlap(
 	// Aggiorna il punteggio totale
 	RecalculateScore();
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"Cargo Zone | Uscito: %s | "
-			"Oggetti: %d | "
-			"Punteggio: %d"
-		),
-		*GetNameSafe(MovableItem),
-		LoadedItems.Num(),
-		CurrentScore
-	);
 }
 
 
@@ -183,19 +157,6 @@ void ACargoZone::HandleLoadedItemDestroyed(AActor* DestroyedActor)
 	// Aggiorna il punteggio dopo la distruzione
 	RecalculateScore();
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"Cargo Zone | Distrutto: %s | "
-			"Oggetti: %d | "
-			"Punteggio: %d"
-		),
-		*GetNameSafe(DestroyedActor),
-		LoadedItems.Num(),
-		CurrentScore
-	);
 }
 
 

@@ -3,8 +3,7 @@
 
 UCargoTruckFrontWheel::UCargoTruckFrontWheel()
 {
-	// Dimensioni iniziali della ruota.
-	// Verranno calibrate dopo il primo test Chaos.
+	// Configura dimensioni e massa della ruota anteriore.
 	WheelRadius = 55.0f;
 	WheelWidth = 30.0f;
 	WheelMass = 30.0f;
@@ -15,7 +14,7 @@ UCargoTruckFrontWheel::UCargoTruckFrontWheel()
 	MaxSteerAngle = 35.0f;
 
 
-	// Per ora scegliamo una trazione posteriore.
+	// Le ruote anteriori non ricevono trazione.
 	bAffectedByEngine = false;
 
 
@@ -24,12 +23,12 @@ UCargoTruckFrontWheel::UCargoTruckFrontWheel()
 	MaxBrakeTorque = 3000.0f;
 
 
-	// Il freno a mano agirà soltanto sulle ruote posteriori.
+	// Il freno a mano non agisce sulle ruote anteriori.
 	bAffectedByHandbrake = false;
 	MaxHandBrakeTorque = 0.0f;
 
 
-	// Aiuti iniziali per rendere il veicolo più stabile.
+	// Configura i sistemi di assistenza alla guida.
 	bABSEnabled = true;
 	bTractionControlEnabled = false;
 }

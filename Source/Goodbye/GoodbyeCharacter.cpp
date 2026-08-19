@@ -389,8 +389,6 @@ void AGoodbyeCharacter::StopGrab(const FInputActionValue& Value)
 
 	PhysicsHandle->ReleaseComponent();
 
-	PhysicsHandle->ReleaseComponent();
-
 	ResetGrabWeight();
 
 	if (IsValid(GrabbedComponent))
@@ -490,9 +488,6 @@ void AGoodbyeCharacter::ApplyGrabWeight(float ObjectMassInKg)
 		return;
 	}
 
-	GrabbedMassInKg = ObjectMassInKg;
-
-	
 	// Converte la massa in un valore tra 0 e 1
 	// 0 = molto leggero
 	// 1 = pesante
@@ -510,11 +505,9 @@ void AGoodbyeCharacter::ApplyGrabWeight(float ObjectMassInKg)
 }
 
 
-
+// Ripristina la velocità normale del Physics Handle
 void AGoodbyeCharacter::ResetGrabWeight()
 {
-	GrabbedMassInKg = 0.0f;
-
 	if (PhysicsHandle)
 	{
 		PhysicsHandle->SetInterpolationSpeed(LightObjectInterpolationSpeed);

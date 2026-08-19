@@ -85,13 +85,6 @@ void AMovableItem::BeginPlay()
 		HealthWidgetComponent->SetVisibility(false);
 	}
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("%s inizializzato con %.1f HP"),
-		*GetName(),
-		CurrentHealth
-	);
 }
 
 // Massa
@@ -163,23 +156,6 @@ void AMovableItem::HandleItemHit(UPrimitiveComponent* HitComponent, AActor* Othe
 	// Applica il danno alla salute dell'oggetto.
 	ApplyImpactDamage(Damage);
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"%s ha colpito %s | "
-			"Massa: %.1f kg | "
-			"Severita: %.2f cm/s | "
-			"Moltiplicatore: %.2f | "
-			"Danno: %.2f"
-		),
-		*GetName(),
-		*GetNameSafe(OtherActor),
-		ObjectMassInKg,
-		ImpactSeverity,
-		DamageMultiplier,
-		Damage
-	);
 }
 
 
@@ -198,19 +174,6 @@ void AMovableItem::ApplyImpactDamage(float DamageAmount)
 
 	// Mostra la barra per tre secondi dall'ultimo impatto
 	ShowHealthWidgetTemporarily();
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"%s | Danno ricevuto: %.2f | "
-			"Salute: %.2f / %.2f"
-		),
-		*GetName(),
-		DamageAmount,
-		CurrentHealth,
-		MaxHealth
-	);
 
 	if (CurrentHealth <= 0.0f)
 	{

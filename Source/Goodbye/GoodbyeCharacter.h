@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Logging/LogMacros.h"
 #include "GoodbyeCharacter.generated.h"
 
 class UInputComponent;
@@ -17,7 +16,7 @@ class USoundBase;
 
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+
 
 /**
  * Character prima persona, eredita da Character
@@ -139,11 +138,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
 	float GrabDistance = 200.0f;
 
-	// Distanza alla quale l'oggetto viene mantenuto davanti alla telecamera dopo essere stato afferrato
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab", meta = (ClampMin = "50.0", Units = "cm"))
-	float HoldDistance = 75.0f;
-
-
 	// Tempo durante il quale il braccio si muove verso l'oggetto prima che il Physic Handle completi la presa
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grab|Animation", meta = (ClampMin = "0.05", Units = "s"))
 	float ReachDuration = 0.20f;
@@ -218,9 +212,6 @@ private:
 	// Viene salvata prima del grab e ripristinata quando l'oggetto viene rilasciato
 	ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
-
-	// Massa dell'oggetto attualemten trasportato
-	float GrabbedMassInKg = 0.0f;
 
 
 

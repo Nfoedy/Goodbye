@@ -389,15 +389,6 @@ void ACargoTruckPawn::RefreshEnginePower()
 	// Applica la nuova coppia massima al motore Chaos.
 	VehicleMovement->SetMaxEngineTorque(UpdatedMaxTorque);
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"Cargo Power | Multiplier: %.2f | Max Torque: %.2f Nm"
-		),
-		EnginePowerMultiplier,
-		UpdatedMaxTorque
-	);
 }
 
 
@@ -546,14 +537,6 @@ void ACargoTruckPawn::HandleDriverZoneBeginOverlap(
 
 	Character->SetNearbyCargoTruck(this);
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("%s vicino al camion %s"),
-		*GetNameSafe(Character),
-		*GetName()
-	);
 }
 
 
@@ -593,13 +576,6 @@ void ACargoTruckPawn::HandleDriverZoneEndOverlap(
 	bCanEnterVehicle = false;
 
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("%s si e allontanato dal camion %s"),
-		*GetNameSafe(Character),
-		*GetName()
-	);
 }
 
 
@@ -695,13 +671,6 @@ bool ACargoTruckPawn::EnterVehicle(AGoodbyeCharacter* RequestingCharacter)
 
 	NearbyCharacter = nullptr;
 
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("Player entrato nel camion %s"),
-		*GetName()
-	);
 
 
 	return true;
@@ -945,15 +914,6 @@ void ACargoTruckPawn::AttachComponentsToVehicleBody()
 
 	if (VehicleMesh->GetBoneIndex(VehicleBodyBoneName) == INDEX_NONE)
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"Impossibile trovare il bone %s nella mesh del camion"
-			),
-			*VehicleBodyBoneName.ToString()
-		);
-
 		return;
 	}
 
@@ -1012,14 +972,6 @@ void ACargoTruckPawn::AttachComponentsToVehicleBody()
 	}
 
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT(
-			"Componenti del camion collegati al bone %s"
-		),
-		*VehicleBodyBoneName.ToString()
-	);
 }
 
 
@@ -1134,9 +1086,4 @@ void ACargoTruckPawn::CheckAutoPark()
 	SetVehicleSimulationEnabled(false);
 
 
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("Camion parcheggiato automaticamente")
-	);
 }

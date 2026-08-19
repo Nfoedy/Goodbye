@@ -15,22 +15,6 @@ struct FHitResult;
 
 
 /**
- * Categoria che rappresenta la grandezza gameplay dell'oggetto trasportabile.
- *
- * La categoria determina il punteggio dell'oggetto,
- * ma non modifica la sua massa fisica.
- */
-UENUM(BlueprintType)
-enum class EMovableItemSize : uint8
-{
-	Small		UMETA(DisplayName = "Small"),
-	Medium		UMETA(DisplayName = "Medium"),
-	Large		UMETA(DisplayName = "Large"),
-	VeryLarge	UMETA(DisplayName = "Very Large")
-};
-
-
-/**
  * Classe base di tutti gli oggetti trasportabili.
  *
  * Gestisce:
@@ -55,11 +39,7 @@ public:
 	AMovableItem();
 
 
-	// Restituisce il punteggio dell'oggetto
-	// Small = 1 pt
-	// Medium = 2 pt
-	// Large = 3 pt
-	// Very Large = 4 pt
+	// Restituisce il punteggio configurato per l'oggetto.
 	UFUNCTION(BlueprintPure, Category = "Movable Item|Score")
 	int32 GetItemScore() const;
 
@@ -67,14 +47,6 @@ public:
 	// Restituisce la massa effettiva utilizzata dalla Static Mesh
 	UFUNCTION(BlueprintPure, Category = "Movable Item|Physics")
 	float GetItemMassInKg() const;
-
-
-	// Restituisce la categoria di grandezza dell'oggetto
-	UFUNCTION(BlueprintPure, Category = "Movable Item|Score")
-	EMovableItemSize GetItemSize() const
-	{
-		return ItemSize;
-	}
 
 
 	// Restituisce il componente Static Mesh dell'oggetto
@@ -146,14 +118,6 @@ protected:
 
 /* CONFIGURAZIONE DEL PUNTEGGIO */
 protected:
-
-	// Categoria di grandezza gameplay dell'oggetto
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Movable Item|Score"
-	)
-	EMovableItemSize ItemSize = EMovableItemSize::Small;
 
 	// Punteggio assegnato all'oggetto quando si trova nel cargo
 	UPROPERTY(

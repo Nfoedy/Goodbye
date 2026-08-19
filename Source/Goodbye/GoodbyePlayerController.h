@@ -10,13 +10,16 @@
 class UInputMappingContext;
 class UUserWidget;
 class UInputAction;
-class UInputMappingContext;
-class UUserWidget;
+
 
 /**
- *  Simple first person Player Controller
- *  Manages the input mapping context.
- *  Overrides the Player Camera Manager class.
+ * PlayerController utilizzato durante il gameplay di Goodbye.
+ *
+ * Gestisce:
+ * - Input Mapping Context;
+ * - Player Camera Manager;
+ * - apertura e chiusura del Pause Menu;
+ * - ritorno al Main Menu.
  */
 UCLASS(abstract, config="Game")
 class GOODBYE_API AGoodbyePlayerController : public APlayerController
@@ -25,7 +28,7 @@ class GOODBYE_API AGoodbyePlayerController : public APlayerController
 	
 public:
 
-	/** Constructor */
+	// Costruttore
 	AGoodbyePlayerController();
 
 
