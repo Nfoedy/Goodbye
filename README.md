@@ -287,4 +287,13 @@ Questi elementi non sono stati approfonditi nella versione attuale perché avreb
 
 ## 📸 Video & Media
 
+- link: https://youtu.be/DE4YPLTzUfA
+
+<p align="center">
+  <img src="Media/Screen1.png" width="33%"/><img src="Media/Screen2.png" width="33%"/><img src="Media/Screen3.png" width="33%"/>
+</p>
+
+
+
+
 
