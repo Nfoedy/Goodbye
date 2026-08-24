@@ -46,6 +46,31 @@ Una volta completato il carico, il giocatore può entrare nel camion e guidare v
 
 ---
 
+## 🎮 Controls
+
+### Player
+
+| Input | Action |
+|-------|--------|
+| `W A S D` | Move |
+| `Mouse` | Look around |
+| `Space` | Jump |
+| `Left Mouse Button` | Grab / Release object |
+| `E` | Enter the Cargo |
+| `ESC` | Open / Close Pause Menu |
+
+### Cargo
+
+| Input | Action |
+|-------|--------|
+| `W` | Accelerate |
+| `S` | Brake / Reverse |
+| `A / D` | Steer |
+| `E` | Exit the Cargo |
+| `ESC` | Open / Close Pause Menu |
+
+---
+
 ## 🕹️ Gameplay
 
 Il giocatore dispone di un tempo limitato per raccogliere gli oggetti presenti nella casa.
@@ -72,6 +97,7 @@ La partita termina con una sconfitta quando:
 - il giocatore raggiunge la Finish Zone senza il punteggio necessario.
 
 In caso di sconfitta viene mostrata direttamente la schermata finale.
+
 
 ---
 
