@@ -50,24 +50,23 @@ Una volta completato il carico, il giocatore può entrare nel camion e guidare v
 
 ### Player
 
-| Input | Action |
+| Input | Azioni |
 |-------|--------|
-| `W A S D` | Move |
-| `Mouse` | Look around |
-| `Space` | Jump |
-| `Left Mouse Button` | Grab / Release object |
-| `E` | Enter the Cargo |
-| `ESC` | Open / Close Pause Menu |
+| `W A S D` | Movimento |
+| `Mouse` | Movimento della visuale |
+| `Space` | Salto |
+| `Left Mouse Button` | Raccolta / Rilascio oggetto |
+| `E` | Entrare nel Cargo |
+| `ESC` | Pausa |
 
 ### Cargo
 
-| Input | Action |
+| Input | Azioni |
 |-------|--------|
-| `W` | Accelerate |
-| `S` | Brake / Reverse |
-| `A / D` | Steer |
-| `E` | Exit the Cargo |
-| `ESC` | Open / Close Pause Menu |
+| `W` | Accelerazione |
+| `S` | Freno / Retromarcia |
+| `A / D` | Sterzo |
+| `E` | Uscire dal Cargo |
 
 ---
 
